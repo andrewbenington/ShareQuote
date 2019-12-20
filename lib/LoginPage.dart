@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'AwardsStream.dart';
-import 'Auth.dart' as auth;
+import 'Globals.dart' as globals;
 import 'HomePage.dart';
+
 
 class LoginPage extends StatefulWidget {
   @override
@@ -161,7 +162,7 @@ class LoginPageState extends State<LoginPage> {
     print(email);
     print(password);
     try {
-      auth.firebaseUser = await FirebaseAuth.instance
+      globals.firebaseUser = await FirebaseAuth.instance
           .signInWithEmailAndPassword(email: email, password: password);
       Navigator.of(context).pushReplacement(MaterialPageRoute(
         builder: (context) => HomePage(),
@@ -201,7 +202,7 @@ class LoginPageState extends State<LoginPage> {
     print(email);
     print(password);
     try {
-      auth.firebaseUser = await FirebaseAuth.instance
+      globals.firebaseUser = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(email: email, password: pass);
       Navigator.of(context).pushReplacement(MaterialPageRoute(
         builder: (context) => HomePage(),

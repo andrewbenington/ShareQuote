@@ -9,7 +9,7 @@ import 'package:http/http.dart';
 import 'package:pearawards/AwardPage.dart';
 import 'package:pearawards/Converter.dart';
 import 'package:pearawards/Upload.dart';
-import 'Auth.dart' as auth;
+import 'Globals.dart' as globals;
 
 import 'Award.dart';
 import 'HomePage.dart';

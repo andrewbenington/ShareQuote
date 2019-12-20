@@ -1,8 +1,13 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:pearawards/DisplayTools.dart';
+import 'package:string_similarity/string_similarity.dart';
+import 'dart:math';
 
 import 'AwardPage.dart';
 import 'CustomPainters.dart';
-import 'Person.dart';
+
+enum Difference { different, same, edited }
 
 class Document {
   Document({this.name, this.url, this.awards});
@@ -18,11 +23,13 @@ Widget buildAwardCard(BuildContext context, Award award, bool tappable) {
       child: FlatButton(
         onPressed: tappable
             ? () {
+                DateTime time =
+                    DateTime.fromMicrosecondsSinceEpoch(award.timestamp);
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => AwardPage(
-                        award: award, title: award.year.toString() + " Award"),
+                    builder: (context) =>
+                        AwardPage(award: award, title: formatDateTime(time)),
                   ),
                 );
               }
@@ -37,19 +44,22 @@ Widget buildAwardCard(BuildContext context, Award award, bool tappable) {
 class Award extends StatelessWidget {
   Award(
       {this.quotes,
-      this.year,
-      this.day,
-      this.month,
+      this.timestamp,
       this.numQuotes,
       this.author,
-      this.fromDoc = false});
+      this.fromDoc = false}) {
+    for (Line l in quotes) {
+      hash ^= l.getHash();
+    }
+  }
   factory Award.fromJson(Map<String, dynamic> jsonMap) {
     List q = jsonMap["lines"];
+    if (q.length == 0) {
+      return null;
+    }
     return Award(
         fromDoc: jsonMap["fromdoc"],
-        year: jsonMap["year"],
-        month: jsonMap["month"],
-        day: jsonMap["day"],
+        timestamp: jsonMap["timestamp"],
         quotes: q
             .map(
               (quote) => Line.fromJson(
@@ -63,14 +73,14 @@ class Award extends StatelessWidget {
         ));
   }
 
-  final int month;
-  final int day;
-  final int year;
+  int timestamp;
   final int numQuotes;
   final Name author;
   final List<Line> quotes;
   final bool fromDoc;
+  DocumentReference docRef;
   int likes = 0;
+  int hash = 0;
 
   bool contains(String filter) {
     for (Line l in quotes) {
@@ -92,7 +102,8 @@ class Award extends StatelessWidget {
               Container(
                 child: RichText(
                   text: TextSpan(
-                    text: year.toString(),
+                    text: formatDateTime(
+                        DateTime.fromMicrosecondsSinceEpoch(timestamp)),
                     style: TextStyle(
                         fontSize: 17.0,
                         color: Colors.green[800],
@@ -103,20 +114,28 @@ class Award extends StatelessWidget {
                 alignment: Alignment.centerLeft,
               ),
               Container(
-                child: fromDoc
-                    ? Icon(
-                        Icons.subject,
-                        color: Colors.grey[700],
-                      )
-                    : RichText(
-                        text: TextSpan(
-                          text: author == null ? "" : author.first,
-                          style: TextStyle(
-                              fontSize: 17.0,
-                              color: Colors.green[800],
-                              fontWeight: FontWeight.bold),
-                        ),
-                      ),
+                child: Row(children: <Widget>[
+                  Spacer(),
+                  RichText(
+                    text: TextSpan(
+                      text: author == null
+                          ? ""
+                          : fromDoc ? "Google Doc" : author.name,
+                      style: TextStyle(
+                          fontSize: 17.0,
+                          color: fromDoc ? Colors.grey[700] : Colors.green[800],
+                          fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  fromDoc
+                      ? Padding(
+                          child: Icon(
+                            Icons.subject,
+                            color: Colors.grey[700],
+                          ),
+                          padding: EdgeInsets.only(left: 8))
+                      : Container(),
+                ]),
                 alignment: Alignment.centerRight,
                 margin: EdgeInsets.only(top: 8.0),
               ),
@@ -146,6 +165,7 @@ abstract class Line extends StatelessWidget {
   @override
   Widget build(BuildContext context);
   bool isQuote();
+  int getHash();
 }
 
 class Quote extends Line {
@@ -162,6 +182,10 @@ class Quote extends Line {
 
   bool isQuote() {
     return true;
+  }
+
+  int getHash() {
+    return message.hashCode ^ name.name.hashCode;
   }
 
   @override
@@ -202,6 +226,10 @@ class Context extends Line {
     return false;
   }
 
+  int getHash() {
+    return message.hashCode;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -227,16 +255,14 @@ class Context extends Line {
 }
 
 class Name extends StatelessWidget {
-  Name({this.first, this.last, this.uid});
+  Name({this.name, this.uid});
 
   factory Name.fromJson(Map<String, dynamic> jsonMap) {
     return Name(
-      first: jsonMap["first"],
-      last: jsonMap["last"],
+      name: jsonMap["name"],
     );
   }
-  final String first;
-  final String last;
+  final String name;
   final String uid;
 
   @override
@@ -246,7 +272,7 @@ class Name extends StatelessWidget {
           child: Container(
             child: RichText(
               text: TextSpan(
-                text: "- " + first + " " + last,
+                text: "- " + name,
                 style: TextStyle(
                   fontSize: 16.0,
                   color: Colors.black87,
@@ -259,4 +285,16 @@ class Name extends StatelessWidget {
       alignment: Alignment.centerRight,
     );
   }
+}
+
+Difference isDifferent(Award award1, Award award2) {
+  for (Line l1 in award1.quotes) {
+    for (Line l2 in award2.quotes) {
+      double diff = StringSimilarity.compareTwoStrings(l1.message, l2.message);
+      if (diff > 0.6) {
+        return Difference.edited;
+      }
+    }
+  }
+  return Difference.different;
 }
