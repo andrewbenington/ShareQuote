@@ -63,7 +63,7 @@ Future<List<Award>> convertAwards(String file) async {
   var currentState = CurrentState.unknown;
   String line;
 
-  Name defaultName = Name(first: "", last: "");
+  Name defaultName = Name(name: "",);
 
   while (awards.length == 0 ||
       (file.indexOf("<p") != -1 || file.indexOf("<ul") != -1) ||
@@ -253,7 +253,7 @@ Future<List<Award>> convertAwards(String file) async {
             quoteNames = <Name>[];
             break;
           }
-          String first = "";
+          String name = "";
           String last = "";
           while (index < line.length) {
             while (index < line.length && !isValidCharacter(line[index])) {
@@ -269,21 +269,19 @@ Future<List<Award>> convertAwards(String file) async {
               index++;
             } else {
               while (index < line.length &&
-                  line[index] != ' ' &&
                   line[index] != '/' &&
                   line[index] != '<') {
                 if (index < line.length - 5 &&
                     line.substring(index, index + 5) == '&#39;') {
                   index += 5;
-                  first += "\'";
+                  name += "\'";
                 } else {
-                  first += line[index++];
+                  name += line[index++];
                 }
                 if (index + 1 < line.length &&
                     line[index] == '.' &&
                     line[index + 1] == ' ') {
-                  first += line[index++];
-                  first += line[index++];
+                  name += line[index++];
                 }
               }
               if (line[index] == ' ') {
@@ -306,10 +304,10 @@ Future<List<Award>> convertAwards(String file) async {
           }
           int indexOf = quoteNames.indexOf(defaultName);
           if (indexOf == -1) {
-            quoteNames.add(Name(first: first, last: last));
+            quoteNames.add(Name(name: name));
           } else {
             quoteNames[quoteNames.indexOf(defaultName)] =
-                Name(first: first, last: last);
+                Name(name: name);
           }
 
           namesAdded = true;
@@ -322,12 +320,12 @@ Future<List<Award>> convertAwards(String file) async {
       case CurrentState.award:
         if (quotes.length != 0) {
           awards.add(Award(
-              year: currentYear,
+              timestamp: DateTime(currentYear).microsecondsSinceEpoch,
               quotes: quotes,
               numQuotes: quotes.length,
               fromDoc: true,
               author: Name(
-                first: awardTitle,
+                name: awardTitle,
               )));
         }
         quotes = <Line>[];
@@ -368,10 +366,9 @@ Map awardToJson(Award award) {
       Quote q = l as Quote;
       Map nameMap = Map();
       lineMap["name"] = nameMap;
-      nameMap["first"] = q.name.first;
-      nameMap["last"] = q.name.last;
+      nameMap["name"] = q.name.name;
       if (q.name.uid != null) {
-        nameMap["uid"] = q.name.last;
+        nameMap["uid"] = "";
       }
 
       lineMap["quote"] = q.message;
@@ -381,15 +378,12 @@ Map awardToJson(Award award) {
     json["lines"].add(lineMap);
   }
   Map author = Map();
-  author["first"] = award.author.first;
-  if (award.author.last != null) {
-    author["last"] = award.author.last;
-  }
+  author["name"] = award.author.name;
   if (award.author.uid != null) {
     author["uid"] = award.author.uid;
   }
   json["author"] = author;
-  json["year"] = award.year;
+  json["timestamp"] = award.timestamp;
   json["fromdoc"] = award.fromDoc;
   return json;
 }

@@ -1,32 +1,28 @@
-import 'dart:io';
-import 'dart:isolate';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'dart:convert';
 import 'package:http/http.dart';
-import 'package:pearawards/AwardPage.dart';
-import 'package:pearawards/CollectionPage.dart';
+import 'dart:convert';
 import 'package:pearawards/Converter.dart';
 import 'package:pearawards/Upload.dart';
-import 'Auth.dart' as auth;
+import 'AddQuote.dart';
+import 'Globals.dart' as globals;
 
 import 'Award.dart';
-import 'HomePage.dart';
-import 'echo.dart';
+import 'Collection.dart';
 
 int currentIndex = 0;
 
-List<Award> awards;
-
-bool error = false;
-bool loading = false;
-bool mostRecent = true;
-
 class AwardsStream extends StatefulWidget {
   static String searchText;
-  AwardsStream({Key key, this.document, this.title}) : super(key: key);
+  AwardsStream({Key key, this.collectionInfo, this.title}) : super(key: key) {
+    setTitle();
+  }
+
+  void setTitle() async {
+    title = await collectionInfo.docRef.get().then((doc) {
+      return doc.documentID;
+    });
+  }
 
   // This widget is the home page of your application. It is stateful, meaning
   // that it has a State object (defined below) that contains fields that affect
@@ -37,19 +33,11 @@ class AwardsStream extends StatefulWidget {
   // used by the build method of the State. Fields in a Widget subclass are
   // always marked "final".
 
-  final DocumentReference document;
-  final String title;
+  final Collection collectionInfo;
+  String title;
 
   @override
   _AwardsStreamState createState() => _AwardsStreamState();
-  void setMostRecent(bool setto) {
-    mostRecent = setto;
-  }
-
-  void setSearchText(String search) {
-    searchText = search;
-    createState();
-  }
 
   String getTitle() {
     return title;
@@ -60,22 +48,54 @@ class _AwardsStreamState extends State<AwardsStream> {
   TextEditingController search_controller = TextEditingController();
   TextEditingController name_controller = TextEditingController();
   TextEditingController url_controller = TextEditingController();
+  bool error = false;
+  bool loading = false;
   bool mostRecent = true;
+  bool auditing = false;
+  List<Award> awards;
+
   String errorMessage = "";
   @override
   void initState() {
     super.initState();
-    awards = [];
+    awards = widget.collectionInfo.awards;
     loading = true;
-    loadAwards();
+    refresh();
   }
 
-  loadAwards() async {
+  addGoogleDoc() async {
     setState(() {
       loading = true;
     });
+    await uploadDoc(globals.firebaseUser, url_controller.text, widget.title);
+    await loadAwards();
+    if (mounted) {
+      setState(() {
+        loading = false;
+      });
+    }
+  }
 
-    QuerySnapshot snapshot = await widget.document
+  refresh() async {
+    await loadAwards();
+    await auditDocument();
+    await loadAwards();
+    if (mounted) {
+      setState(() {
+        loading = false;
+      });
+    }
+  }
+
+  loadAwards() async {
+    if (widget.collectionInfo.lastLoaded >=
+        (await widget.collectionInfo.docRef.get()).data["lastEdit"]) {
+      if (awards.length == 0) {
+        awards = widget.collectionInfo.awards;
+      }
+      return;
+    }
+    QuerySnapshot snapshot = await widget.collectionInfo.docRef
         .collection("awards")
         .orderBy("timestamp", descending: true)
         .getDocuments();
@@ -83,36 +103,18 @@ class _AwardsStreamState extends State<AwardsStream> {
     awards = snapshot.documents.map((doc) {
       var award = Award.fromJson(jsonDecode(doc.data["json"]));
       award.likes = doc.data["likes"];
+      award.docRef = doc.reference;
+      award.timestamp = doc.data["timestamp"];
       return award;
     }).toList();
-    setState(() {
-      loading = false;
-    });
-  }
-
-  loadAwardsFromDoc(String url) async {
-    loading = true;
-    Result result = await retrieveAwards(url);
-    if (!result.success) {
-      error = true;
-      errorMessage = result.error;
-    } else {
-      error = false;
-      //awards = result.awards;
-      //awardTitle = result.title;
-    }
-
-    loading = false;
-    if (awards == null) {
-      error = true;
-    }
-    setState(() {});
+    widget.collectionInfo.awards = awards;
+    widget.collectionInfo.lastLoaded = DateTime.now().microsecondsSinceEpoch;
   }
 
   @override
   Widget build(BuildContext context) {
     if (awards == null && !loading && !error) {
-      loadAwards();
+      refresh();
     }
     return Scaffold(
       appBar: AppBar(
@@ -148,10 +150,7 @@ class _AwardsStreamState extends State<AwardsStream> {
                             new FlatButton(
                               child: new Text('ADD'),
                               onPressed: () {
-                                UploadDoc(auth.firebaseUser,
-                                    url_controller.text, widget.title);
-                                setState(() {});
-                                loading = true;
+                                addGoogleDoc();
                                 Navigator.of(context).pop();
                               },
                             )
@@ -178,7 +177,7 @@ class _AwardsStreamState extends State<AwardsStream> {
                   RaisedButton(
                     child: Text("Try again"),
                     onPressed: () {
-                      loadAwards();
+                      refresh();
                     },
                   ),
                   Spacer()
@@ -195,56 +194,102 @@ class _AwardsStreamState extends State<AwardsStream> {
                                 .map((a) => buildAwardCard(context, a, true))
                                 .toList(),
                           ),
-                          onRefresh: () async {
-                            loadAwards();
-                            return;
-                          },
+                          onRefresh: () => refresh(),
                         )
                       : Column(
                           children: <Widget>[
                             Spacer(),
-                            Text("No Awards", style: TextStyle(color: Colors.green[800], fontSize: 40, fontWeight: FontWeight.bold),),
-                            Text("Tap the '+' button to create one!",style: TextStyle(color: Colors.green[800], fontSize: 20,),),
+                            Text(
+                              "No Awards",
+                              style: TextStyle(
+                                  color: Colors.green[800],
+                                  fontSize: 40,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              "Tap the '+' button to create one!",
+                              style: TextStyle(
+                                color: Colors.green[800],
+                                fontSize: 20,
+                              ),
+                            ),
                             Spacer()
                           ],
                         )
                   : CircularProgressIndicator()),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          //UploadDoc(auth.firebaseUser, Document(name: awardTitle, awards: awards));
+          newAward();
         },
         tooltip: 'Increment',
         child: Icon(Icons.add),
       ),
     );
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold();
   }
 
-  /*ListView buildList() {
-    var list = ListView.builder(
-      controller: ScrollController(),
-      itemCount: awards.length,
-      itemBuilder: (BuildContext context, int index) {
-        if (mostRecent) {
-          index = awards.length - index - 1;
-        }
-        return AwardsStream.searchText == null || AwardsStream.searchText == ""
-            ? buildAwardCard(context, awards[index], true)
-            : awards[index].contains(AwardsStream.searchText)
-                ? buildAwardCard(context, awards[index], true)
-                : new Container();
-      },
-    );
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      list.controller.jumpTo(0);
-    });
+  Future<void> auditDocument() async {
+    if (auditing) {
+      return;
+    }
+    auditing = true;
+    Map collection = (await widget.collectionInfo.docRef.get()).data;
+    String url = collection["googledoc"];
 
-    return list;
-  }*/
+    if (url == null) {
+      return;
+    }
+    Result result = await retrieveAwards(url);
+    Map<int, Award> inServer = Map();
+    awards.forEach((a) {
+      if (a.fromDoc) {
+        if (inServer[a.hash] != null) {
+          a.docRef.delete();
+        } else {
+          inServer[a.hash] = a;
+        }
+      }
+    });
+    Map<int, Award> inDoc = Map();
+    result.awards.forEach((a) {
+      if (a.fromDoc) {
+        if (inServer[a.hash] == null) {
+          inDoc[a.hash] = a;
+        } else {
+          inServer.remove(a.hash);
+        }
+      }
+    });
+    if (inServer.length > 0) {
+      widget.collectionInfo.docRef
+          .updateData({"lastEdit": DateTime.now().microsecondsSinceEpoch});
+    }
+    inServer.forEach((sHash, sAward) {
+      sAward.docRef.delete();
+    });
+    inDoc.forEach((dHash, dAward) {
+      uploadNewAward(globals.firebaseUser, dAward, widget.title);
+    });
+    auditing = false;
+  }
+
+  newAward() async {
+    bool another = await Navigator.push(
+        context,
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) => AddQuote(
+            title: widget.title,
+          ),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return ScaleTransition(
+                scale: animation.drive(CurveTween(curve: Curves.ease)),
+                alignment: Alignment.center,
+                child: child);
+          },
+        ));
+    if (another) {
+      loading = true;
+      await refresh();
+      loading = false;
+    }
+  }
 }

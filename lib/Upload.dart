@@ -6,15 +6,7 @@ import 'package:pearawards/Converter.dart';
 
 import 'Award.dart';
 
-void UploadDoc(FirebaseUser user, String url, String name) async {
-  Result result = await retrieveAwards(url);
-  for (Award a in result.awards) {
-    await UploadAward(user, a, name);
-  }
-}
-
-Future<void> UploadAward(
-    FirebaseUser user, Award award, String collection) async {
+Future<int> uploadNewAward(FirebaseUser user, Award award, String collection) {
   var docRef = Firestore.instance.collection('users').document(user.uid);
 
   docRef.get().then((doc) {
@@ -24,37 +16,58 @@ Future<void> UploadAward(
           .document(user.uid)
           .setData({"display": user.displayName});
     }
-    var coll = Firestore.instance
+    DocumentReference coll = Firestore.instance
         .collection('users')
         .document(user.uid)
         .collection('collections')
         .document(collection);
-    coll.get().then((doc) {
-      if (!doc.exists) {
-        Firestore.instance
-            .collection('users')
-            .document(user.uid)
-            .collection('collections')
-            .document(collection)
-            .setData({});
-      }
-      var awd = Firestore.instance
-          .collection('users')
-          .document(user.uid)
-          .collection('collections')
-          .document(collection)
-          .collection("awards")
-          .document();
-      awd.setData({
-        "json": jsonEncode(awardToJson(award)),
-        "timestamp": DateTime.now().microsecondsSinceEpoch,
-        "likes" : 0
-      });
-    });
+        coll.updateData({"lastEdit": DateTime.now().microsecondsSinceEpoch});
+    return uploadAward(user, award, coll);
   });
 }
 
-Future<void> CreateCollection(FirebaseUser user, String collection) async {
+Future<int> uploadDoc(FirebaseUser user, String url, String name) async {
+  Result result = await retrieveAwards(url);
+  DocumentReference docRef =
+      Firestore.instance.collection('users').document(user.uid);
+  return docRef.get().then((doc) async {
+    if (!doc.exists) {
+      Firestore.instance
+          .collection('users')
+          .document(user.uid)
+          .setData({"display": user.displayName});
+    }
+    DocumentReference coll = Firestore.instance
+        .collection('users')
+        .document(user.uid)
+        .collection('collections')
+        .document(name);
+    for (Award a in result.awards) {
+      int code = await uploadAward(user, a, coll);
+      if (code != 0) {
+        return code;
+      }
+    }
+    coll.setData({"googledoc" : url, "lastEdit": DateTime.now().microsecondsSinceEpoch});
+    return 0;
+  });
+}
+
+Future<int> uploadAward(
+    FirebaseUser user, Award award, DocumentReference collection) async {
+      
+  return collection.get().then((doc) {
+    var awd = collection.collection("awards").document();
+    awd.setData({
+      "json": jsonEncode(awardToJson(award)),
+      "timestamp": award.fromDoc ? award.timestamp : DateTime.now().microsecondsSinceEpoch,
+      "likes": 0
+    });
+    return 0;
+  });
+}
+
+Future<void> createCollection(FirebaseUser user, String collection) async {
   var docRef = Firestore.instance.collection('users').document(user.uid);
 
   docRef.get().then((doc) {
@@ -76,7 +89,7 @@ Future<void> CreateCollection(FirebaseUser user, String collection) async {
             .document(user.uid)
             .collection('collections')
             .document(collection)
-            .setData({});
+            .setData({"lastEdit":0});
       }
     });
   });

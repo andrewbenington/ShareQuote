@@ -1,18 +1,11 @@
-import 'dart:io';
-import 'dart:isolate';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:pearawards/AwardsStream.dart';
-import 'package:pearawards/Converter.dart';
 import 'package:pearawards/Upload.dart';
-import 'Auth.dart' as auth;
+import 'Collection.dart';
+import 'Globals.dart' as globals;
 
-import 'Award.dart';
 import 'CustomPainters.dart';
-import 'HomePage.dart';
-import 'echo.dart';
 
 int currentIndex = 0;
 
@@ -74,7 +67,7 @@ class _CollectionPageState extends State<CollectionPage> {
     loading = true;
     var coll = Firestore.instance
         .collection('users')
-        .document(auth.firebaseUser.uid)
+        .document(globals.firebaseUser.uid)
         .collection('collections');
     collections = coll;
     loading = false;
@@ -122,7 +115,7 @@ class _CollectionPageState extends State<CollectionPage> {
       /*floatingActionButton: FloatingActionButton(
         onPressed: () {
           UploadDoc(
-              auth.firebaseUser, Document(name: awardTitle, awards: awards));
+              globals.firebaseUser, Document(name: awardTitle, awards: awards));
         },
         tooltip: 'Increment',
         child: Icon(Icons.check),
@@ -151,9 +144,12 @@ class _CollectionPageState extends State<CollectionPage> {
                   SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2),
               children:
                   snapshot.data.documents.map((DocumentSnapshot document) {
+                    if(globals.loadedCollections[document.documentID] == null) {
+                      globals.loadedCollections[document.documentID] = Collection(docRef: document.reference);
+                    }
                         return new GridTile(
                             child: CollectionTile(
-                          document: document.reference,
+                          c: globals.loadedCollections[document.documentID],
                         ));
                       }).toList() +
                       [GridTile(child: buildNewCollectionButton())],
@@ -204,8 +200,8 @@ class _CollectionPageState extends State<CollectionPage> {
                       new FlatButton(
                         child: new Text('ADD'),
                         onPressed: () {
-                          CreateCollection(
-                              auth.firebaseUser, name_controller.text);
+                          createCollection(
+                              globals.firebaseUser, name_controller.text);
                           setState(() {});
                           Navigator.of(context).pop();
                         },
@@ -219,8 +215,8 @@ class _CollectionPageState extends State<CollectionPage> {
 }
 
 class CollectionTile extends StatelessWidget {
-  CollectionTile({this.document});
-  DocumentReference document;
+  CollectionTile({this.c});
+  Collection c;
   String label = "";
 
   @override
@@ -234,10 +230,10 @@ class CollectionTile extends StatelessWidget {
           onPressed: () {
             Navigator.push(
               context,
-              growRoute(document),
+              growRoute(c),
             );
           },
-          child: Text(document.documentID, style: TextStyle(fontSize: 28),),
+          child: Text(c.docRef.documentID, style: TextStyle(fontSize: 28),),
         ),
       ),
       margin: EdgeInsets.all(10),
@@ -245,11 +241,11 @@ class CollectionTile extends StatelessWidget {
   }
 }
 
-Route growRoute(DocumentReference document) {
+Route growRoute(Collection c) {
   return PageRouteBuilder(
     pageBuilder: (context, animation, secondaryAnimation) => AwardsStream(
-      document: document,
-      title: document.documentID,
+      collectionInfo: c,
+      title: c.docRef.documentID,
     ),
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
       return ScaleTransition(
