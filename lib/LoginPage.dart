@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'AwardsStream.dart';
 import 'Globals.dart' as globals;
 import 'HomePage.dart';
-
 
 class LoginPage extends StatefulWidget {
   @override
@@ -28,32 +26,34 @@ class LoginPageState extends State<LoginPage> {
         backgroundColor: Colors.green[200],
         body: Container(
             child: Center(
-                child: Stack(children: <Widget>[Column(
-          children: <Widget>[
-            Spacer(),
-            Row(
-              children: <Widget>[
-                Spacer(),
-                Text(
-                  "Share",
-                  style: TextStyle(fontSize: 52.0, color: Colors.grey[900]),
-                ),
-                Text(
-                  "Quote",
-                  style: TextStyle(
-                      fontSize: 52.0,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.green[900]),
-                ),
-                Spacer(),
-              ],
-            ),
-            Spacer(),
-            loginWindow(),
-            Spacer(),
-          ],
-        ),
-      loading ? Center(child: CircularProgressIndicator()) : Container()]))));
+                child: Stack(children: <Widget>[
+          Column(
+            children: <Widget>[
+              Spacer(),
+              Row(
+                children: <Widget>[
+                  Spacer(),
+                  Text(
+                    "Share",
+                    style: TextStyle(fontSize: 52.0, color: Colors.grey[900]),
+                  ),
+                  Text(
+                    "Quote",
+                    style: TextStyle(
+                        fontSize: 52.0,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green[900]),
+                  ),
+                  Spacer(),
+                ],
+              ),
+              Spacer(),
+              loginWindow(),
+              Spacer(),
+            ],
+          ),
+          loading ? Center(child: CircularProgressIndicator()) : Container()
+        ]))));
   }
 
   Widget loginWindow() {
@@ -71,7 +71,7 @@ class LoginPageState extends State<LoginPage> {
                   },
                   decoration: InputDecoration(
                       contentPadding:
-                          EdgeInsets.symmetric(vertical: 2.0, horizontal: 20),
+                          EdgeInsets.symmetric(vertical: 8.0, horizontal: 20),
                       hintStyle:
                           TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
                       hintText: "Email",
@@ -95,7 +95,7 @@ class LoginPageState extends State<LoginPage> {
                   obscureText: true,
                   decoration: InputDecoration(
                       contentPadding:
-                          EdgeInsets.symmetric(vertical: 2.0, horizontal: 20),
+                          EdgeInsets.symmetric(vertical: 8.0, horizontal: 20),
                       hintStyle:
                           TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
                       hintText: "Password",
@@ -147,7 +147,7 @@ class LoginPageState extends State<LoginPage> {
               left: MediaQuery.of(context).size.height * 0.03,
               right: MediaQuery.of(context).size.height * 0.03),
           width: MediaQuery.of(context).size.width * 0.8,
-          height: MediaQuery.of(context).size.height * 0.4,
+          height: 300,
         ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(30.0),
@@ -162,12 +162,16 @@ class LoginPageState extends State<LoginPage> {
     print(email);
     print(password);
     try {
-      globals.firebaseUser = await FirebaseAuth.instance
-          .signInWithEmailAndPassword(email: email, password: password);
+      FirebaseAuth auth = FirebaseAuth.instance;
+      AuthResult result = await auth.signInWithEmailAndPassword(
+          email: email, password: password);
+          globals.firebaseUser = result.user;
+      globals.firebaseAuth = auth;
       Navigator.of(context).pushReplacement(MaterialPageRoute(
         builder: (context) => HomePage(),
       ));
     } catch (error) {
+      print(error);
       switch (error.code) {
         case "ERROR_USER_NOT_FOUND":
           {
@@ -202,8 +206,11 @@ class LoginPageState extends State<LoginPage> {
     print(email);
     print(password);
     try {
-      globals.firebaseUser = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(email: email, password: pass);
+      FirebaseAuth auth = FirebaseAuth.instance;
+      AuthResult result = await auth.createUserWithEmailAndPassword(
+          email: email, password: pass);
+      globals.firebaseUser = result.user;
+          globals.firebaseAuth = auth;
       Navigator.of(context).pushReplacement(MaterialPageRoute(
         builder: (context) => HomePage(),
       ));

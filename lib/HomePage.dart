@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:pearawards/HomeFeed.dart';
+import 'package:pearawards/LoginPage.dart';
 
 import 'Award.dart';
 import 'AwardsStream.dart';
 import 'CollectionPage.dart';
+import 'Globals.dart' as globals;
 
 final Document overripe = Document(
     url:
@@ -41,11 +43,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    var pages = <Widget>[
-      CollectionPage(),
-      HomeFeed(),
-      Text("hehe it me")
-    ];
+    var pages = <Widget>[CollectionPage(), HomeFeed(), Text("hehe it me")];
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.green,
@@ -78,7 +76,13 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: pages[pageIndex],
+      body: PageView(
+        children: pages,
+        onPageChanged: (newPage) {
+          pageIndex = newPage;
+          setState(() {});
+        },
+      ),
       drawer: buildDrawer(),
       bottomNavigationBar: BottomNavigationBar(
         onTap: (index) {
@@ -92,7 +96,8 @@ class _HomePageState extends State<HomePage> {
               icon: Icon(Icons.collections_bookmark),
               title: Text("Collections")),
           BottomNavigationBarItem(icon: Icon(Icons.home), title: Text("Home")),
-          BottomNavigationBarItem(icon: Icon(Icons.person), title: Text("Profile")),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.person), title: Text("Profile")),
         ],
       ),
     );
@@ -190,52 +195,12 @@ class _HomePageState extends State<HomePage> {
             ),
           ),*/
           RaisedButton(
-            child: Text("New Document"),
+            child: Text("Log Out"),
             onPressed: () {
-              setState(() {
-                showDialog(
-                    context: context,
-                    builder: (context) {
-                      return AlertDialog(
-                        title: Text('Add new document'),
-                        content: Container(
-                          height: MediaQuery.of(context).size.height * 0.13,
-                          child: Column(
-                            children: <TextField>[
-                              TextField(
-                                controller: name_controller,
-                                decoration:
-                                    InputDecoration(hintText: "Document name"),
-                              ),
-                              TextField(
-                                controller: url_controller,
-                                decoration: InputDecoration(
-                                    hintText: "Google Docs url"),
-                              ),
-                            ],
-                          ),
-                        ),
-                        actions: <Widget>[
-                          new FlatButton(
-                            child: new Text('CANCEL'),
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                            },
-                          ),
-                          new FlatButton(
-                            child: new Text('ADD'),
-                            onPressed: () {
-                              documents.add(Document(
-                                  name: name_controller.text,
-                                  url: url_controller.text));
-                              setState(() {});
-                              Navigator.of(context).pop();
-                            },
-                          )
-                        ],
-                      );
-                    });
-              });
+              globals.firebaseAuth.signOut();
+              Navigator.of(context).pushReplacement(MaterialPageRoute(
+                builder: (context) => LoginPage(),
+              ));
             },
           ),
         ],

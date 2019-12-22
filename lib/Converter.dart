@@ -63,7 +63,9 @@ Future<List<Award>> convertAwards(String file) async {
   var currentState = CurrentState.unknown;
   String line;
 
-  Name defaultName = Name(name: "",);
+  Name defaultName = Name(
+    name: "",
+  );
 
   while (awards.length == 0 ||
       (file.indexOf("<p") != -1 || file.indexOf("<ul") != -1) ||
@@ -306,8 +308,7 @@ Future<List<Award>> convertAwards(String file) async {
           if (indexOf == -1) {
             quoteNames.add(Name(name: name));
           } else {
-            quoteNames[quoteNames.indexOf(defaultName)] =
-                Name(name: name);
+            quoteNames[quoteNames.indexOf(defaultName)] = Name(name: name);
           }
 
           namesAdded = true;
@@ -320,10 +321,11 @@ Future<List<Award>> convertAwards(String file) async {
       case CurrentState.award:
         if (quotes.length != 0) {
           awards.add(Award(
-              timestamp: DateTime(currentYear).microsecondsSinceEpoch,
+              timestamp: DateTime(currentYear).microsecondsSinceEpoch + awards.length,
               quotes: quotes,
               numQuotes: quotes.length,
               fromDoc: true,
+              showYear: true,
               author: Name(
                 name: awardTitle,
               )));
@@ -366,9 +368,11 @@ Map awardToJson(Award award) {
       Quote q = l as Quote;
       Map nameMap = Map();
       lineMap["name"] = nameMap;
-      nameMap["name"] = q.name.name;
-      if (q.name.uid != null) {
-        nameMap["uid"] = "";
+      if (q.name != null) {
+        nameMap["name"] = q.name.name;
+        if (q.name.uid != null) {
+          nameMap["uid"] = "";
+        }
       }
 
       lineMap["quote"] = q.message;
@@ -385,5 +389,6 @@ Map awardToJson(Award award) {
   json["author"] = author;
   json["timestamp"] = award.timestamp;
   json["fromdoc"] = award.fromDoc;
+  json["showYear"] = award.showYear;
   return json;
 }

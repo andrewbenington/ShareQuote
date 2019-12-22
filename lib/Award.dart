@@ -19,7 +19,10 @@ class Document {
 Widget buildAwardCard(BuildContext context, Award award, bool tappable) {
   return Card(
     child: CustomPaint(
-      painter: TabPainter(),
+      painter: TabPainter(
+          fromLeft: 0.4,
+          height: 36,
+          color: award.fromDoc ? Colors.grey[300] : Colors.green[100]),
       child: FlatButton(
         onPressed: tappable
             ? () {
@@ -28,8 +31,12 @@ Widget buildAwardCard(BuildContext context, Award award, bool tappable) {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) =>
-                        AwardPage(award: award, title: formatDateTime(time)),
+                    builder: (context) => AwardPage(
+                        award: award,
+                        title: award.author.name +
+                            (award.showYear
+                                ? ""
+                                : " " + formatDateTimeAward(time))),
                   ),
                 );
               }
@@ -37,7 +44,7 @@ Widget buildAwardCard(BuildContext context, Award award, bool tappable) {
         child: award,
       ),
     ),
-    margin: EdgeInsets.all(5.0),
+    margin: EdgeInsets.only(left: 5.0, right: 5.0, top: 5),
   );
 }
 
@@ -47,7 +54,7 @@ class Award extends StatelessWidget {
       this.timestamp,
       this.numQuotes,
       this.author,
-      this.fromDoc = false}) {
+      this.fromDoc = false, this.showYear = false}) {
     for (Line l in quotes) {
       hash ^= l.getHash();
     }
@@ -59,6 +66,7 @@ class Award extends StatelessWidget {
     }
     return Award(
         fromDoc: jsonMap["fromdoc"],
+        showYear: jsonMap["showYear"],
         timestamp: jsonMap["timestamp"],
         quotes: q
             .map(
@@ -78,6 +86,7 @@ class Award extends StatelessWidget {
   final Name author;
   final List<Line> quotes;
   final bool fromDoc;
+  bool showYear;
   DocumentReference docRef;
   int likes = 0;
   int hash = 0;
@@ -99,45 +108,71 @@ class Award extends StatelessWidget {
         Align(
           child: Stack(
             children: <Widget>[
-              Container(
-                child: RichText(
-                  text: TextSpan(
-                    text: formatDateTime(
-                        DateTime.fromMicrosecondsSinceEpoch(timestamp)),
-                    style: TextStyle(
-                        fontSize: 17.0,
-                        color: Colors.green[800],
-                        fontWeight: FontWeight.bold),
-                  ),
-                ),
-                margin: EdgeInsets.only(bottom: 15.0, top: 10.0),
-                alignment: Alignment.centerLeft,
-              ),
-              Container(
-                child: Row(children: <Widget>[
-                  Spacer(),
-                  RichText(
-                    text: TextSpan(
-                      text: author == null
-                          ? ""
-                          : fromDoc ? "Google Doc" : author.name,
-                      style: TextStyle(
-                          fontSize: 17.0,
-                          color: fromDoc ? Colors.grey[700] : Colors.green[800],
-                          fontWeight: FontWeight.bold),
+              FractionallySizedBox(
+                widthFactor: 0.32,
+                child: Container(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: RichText(
+                      text: TextSpan(
+                        text: showYear
+                            ? DateTime.fromMicrosecondsSinceEpoch(timestamp)
+                                .year
+                                .toString()
+                            : formatDateTimeShort(
+                                DateTime.fromMicrosecondsSinceEpoch(timestamp)),
+                        style: TextStyle(
+                            fontSize: 17.0,
+                            color: Colors.green[800],
+                            fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ),
-                  fromDoc
-                      ? Padding(
-                          child: Icon(
-                            Icons.subject,
-                            color: Colors.grey[700],
+                  margin: EdgeInsets.only(bottom: 15.0, top: 8.0),
+                  alignment: Alignment.center,
+                ),
+              ),
+              Align(
+                child: FractionallySizedBox(
+                  widthFactor: 0.65,
+                  child: Row(children: <Widget>[
+                    Expanded(
+                      child: Container(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: RichText(
+                            text: TextSpan(
+                              text: author == null
+                                  ? ""
+                                  : fromDoc ? "Google Doc" : author.name,
+                              style: TextStyle(
+                                  fontSize: 17.0,
+                                  color: fromDoc
+                                      ? Colors.grey[700]
+                                      : Colors.green[800],
+                                  fontWeight: FontWeight.bold),
+                            ),
                           ),
-                          padding: EdgeInsets.only(left: 8))
-                      : Container(),
-                ]),
+                        ),
+                        margin: EdgeInsets.only(bottom: 15.0, top: 8.0),
+                        alignment: Alignment.centerRight,
+                      ),
+                    ),
+                  ]),
+                ),
+                alignment:
+                    fromDoc ? Alignment(0.55, 0.0) : Alignment.centerRight,
+              ),
+              Align(
+                child: fromDoc
+                    ? Padding(
+                        child: Icon(
+                          Icons.subject,
+                          color: Colors.grey[700],
+                        ),
+                        padding: EdgeInsets.only(left: 8, top: 6.0))
+                    : Container(),
                 alignment: Alignment.centerRight,
-                margin: EdgeInsets.only(top: 8.0),
               ),
             ],
           ),
@@ -185,7 +220,9 @@ class Quote extends Line {
   }
 
   int getHash() {
-    return message.hashCode ^ name.name.hashCode;
+    return name != null
+        ? message.hashCode ^ name.name.hashCode
+        : message.hashCode;
   }
 
   @override

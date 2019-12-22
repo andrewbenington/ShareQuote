@@ -57,7 +57,7 @@ class _AddQuoteState extends State<AddQuote> {
                               uid: globals.firebaseUser.uid,
                               name: globals.firebaseUser.displayName,
                             )),
-                        widget.title);
+                        widget.title, true);
                     Navigator.pop(context, true);
                   } else {
                     Navigator.pop(context, false);
@@ -176,7 +176,7 @@ class NewLineFormState extends State<NewLineForm> {
       Card(
         color: widget.color,
         child: CustomPaint(
-            painter: TabPainter(),
+            painter: TabPainter(fromLeft: 0.15, height: 36, color: Colors.green[200]),
             child: widget.editing
                 ? Column(
                     children: <Widget>[

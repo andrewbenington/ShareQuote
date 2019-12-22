@@ -137,7 +137,7 @@ class _CollectionPageState extends State<CollectionPage> {
         if (snapshot.hasError) return new Text('Error: ${snapshot.error}');
         switch (snapshot.connectionState) {
           case ConnectionState.waiting:
-            return new Text('Loading...');
+            return CircularProgressIndicator();
           default:
             return new GridView(
               gridDelegate:
