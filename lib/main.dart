@@ -1,3 +1,4 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:pearawards/LoginPage.dart';
 import 'AwardsStream.dart';
@@ -26,5 +27,3 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-
-

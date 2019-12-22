@@ -6,7 +6,7 @@ import 'package:pearawards/Converter.dart';
 
 import 'Award.dart';
 
-Future<int> uploadNewAward(FirebaseUser user, Award award, String collection) {
+Future<int> uploadNewAward(FirebaseUser user, Award award, String collection, bool newTime) {
   var docRef = Firestore.instance.collection('users').document(user.uid);
 
   docRef.get().then((doc) {
@@ -22,7 +22,7 @@ Future<int> uploadNewAward(FirebaseUser user, Award award, String collection) {
         .collection('collections')
         .document(collection);
         coll.updateData({"lastEdit": DateTime.now().microsecondsSinceEpoch});
-    return uploadAward(user, award, coll);
+    return uploadAward(user, award, coll, !newTime);
   });
 }
 
@@ -43,7 +43,7 @@ Future<int> uploadDoc(FirebaseUser user, String url, String name) async {
         .collection('collections')
         .document(name);
     for (Award a in result.awards) {
-      int code = await uploadAward(user, a, coll);
+      int code = await uploadAward(user, a, coll, true);
       if (code != 0) {
         return code;
       }
@@ -54,13 +54,13 @@ Future<int> uploadDoc(FirebaseUser user, String url, String name) async {
 }
 
 Future<int> uploadAward(
-    FirebaseUser user, Award award, DocumentReference collection) async {
+    FirebaseUser user, Award award, DocumentReference collection, bool fullDoc) async {
       
   return collection.get().then((doc) {
     var awd = collection.collection("awards").document();
     awd.setData({
       "json": jsonEncode(awardToJson(award)),
-      "timestamp": award.fromDoc ? award.timestamp : DateTime.now().microsecondsSinceEpoch,
+      "timestamp": fullDoc ? award.timestamp : DateTime.now().microsecondsSinceEpoch,
       "likes": 0
     });
     return 0;

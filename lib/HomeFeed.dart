@@ -152,7 +152,6 @@ class _HomeFeedState extends State<HomeFeed> {
     // The Flutter framework has been optimized to make rerunning build methods
     // fast, so that you can just rebuild anything that needs updating rather
     // than having to individually change instances of widgets.
-    return Scaffold();
   }
 
   /*ListView buildList() {
