@@ -1,6 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'AwardsStream.dart';
+import 'CreateProfile.dart';
 import 'Globals.dart' as globals;
 import 'HomePage.dart';
 
@@ -132,7 +134,12 @@ class LoginPageState extends State<LoginPage> {
                   //color: Colors.green,
                   //elevation: 3.0,
                   onPressed: () {
-                    attemptSignUp(emailController.text, passController.text);
+                    Navigator.push(
+                      context,
+                      growSignupPage(),
+                    );
+
+                    //attemptSignUp(emailController.text, passController.text);
                   },
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30.0),
@@ -147,7 +154,7 @@ class LoginPageState extends State<LoginPage> {
               left: MediaQuery.of(context).size.height * 0.03,
               right: MediaQuery.of(context).size.height * 0.03),
           width: MediaQuery.of(context).size.width * 0.8,
-          height: 300,
+          height: 280,
         ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(30.0),
@@ -165,7 +172,7 @@ class LoginPageState extends State<LoginPage> {
       FirebaseAuth auth = FirebaseAuth.instance;
       AuthResult result = await auth.signInWithEmailAndPassword(
           email: email, password: password);
-          globals.firebaseUser = result.user;
+      globals.firebaseUser = result.user;
       globals.firebaseAuth = auth;
       Navigator.of(context).pushReplacement(MaterialPageRoute(
         builder: (context) => HomePage(),
@@ -210,7 +217,8 @@ class LoginPageState extends State<LoginPage> {
       AuthResult result = await auth.createUserWithEmailAndPassword(
           email: email, password: pass);
       globals.firebaseUser = result.user;
-          globals.firebaseAuth = auth;
+      globals.firebaseAuth = auth;
+      Firestore.instance.document(result.user.uid).collection("friends");
       Navigator.of(context).pushReplacement(MaterialPageRoute(
         builder: (context) => HomePage(),
       ));
@@ -255,4 +263,16 @@ class LoginPageState extends State<LoginPage> {
           );
         });
   }
+}
+
+Route growSignupPage() {
+  return PageRouteBuilder(
+    pageBuilder: (context, animation, secondaryAnimation) => CreateProfile(),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      return ScaleTransition(
+          scale: animation.drive(CurveTween(curve: Curves.ease)),
+          alignment: Alignment.center,
+          child: child);
+    },
+  );
 }

@@ -6,6 +6,7 @@ import 'Award.dart';
 import 'AwardsStream.dart';
 import 'CollectionPage.dart';
 import 'Globals.dart' as globals;
+import 'ProfilePage.dart';
 
 final Document overripe = Document(
     url:
@@ -32,6 +33,8 @@ class _HomePageState extends State<HomePage> {
   TextEditingController url_controller = TextEditingController();
   TextEditingController search_controller = TextEditingController();
 
+  PageController pageController = PageController();
+
   AwardsStream stream;
 
   int pageIndex = 0;
@@ -43,40 +46,41 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    var pages = <Widget>[CollectionPage(), HomeFeed(), Text("hehe it me")];
+    var pages = <Widget>[CollectionPage(), HomeFeed(), ProfilePage()];
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.green,
-        title: Text("Home"),
-        actions: <Widget>[
-          IconButton(
-            icon: Icon(Icons.search),
-            onPressed: () {
-              showMenu(
-                context: context,
-                position: RelativeRect.fromLTRB(100, 100, 0, 0),
-                items: <PopupMenuEntry>[
-                  PopupMenuItem(
-                    child: Container(
-                      child: TextField(
-                        autocorrect: false,
-                        controller: search_controller,
-                        onChanged: (text) {
-                          setState(() {
-                            AwardsStream.searchText = text;
-                          });
-                        },
-                      ),
-                      width: 250,
-                    ),
-                  )
-                ],
-              );
-            },
-          ),
-        ],
-      ),
+      // appBar: AppBar(
+      //   backgroundColor: Colors.green,
+      //   title: Text("Home"),
+      //   actions: <Widget>[
+      //     IconButton(
+      //       icon: Icon(Icons.search),
+      //       onPressed: () {
+      //         showMenu(
+      //           context: context,
+      //           position: RelativeRect.fromLTRB(100, 100, 0, 0),
+      //           items: <PopupMenuEntry>[
+      //             PopupMenuItem(
+      //               child: Container(
+      //                 child: TextField(
+      //                   autocorrect: false,
+      //                   controller: search_controller,
+      //                   onChanged: (text) {
+      //                     setState(() {
+      //                       AwardsStream.searchText = text;
+      //                     });
+      //                   },
+      //                 ),
+      //                 width: 250,
+      //               ),
+      //             )
+      //           ],
+      //         );
+      //       },
+      //     ),
+      //   ],
+      // ),
       body: PageView(
+        controller: pageController,
         children: pages,
         onPageChanged: (newPage) {
           pageIndex = newPage;
@@ -88,6 +92,7 @@ class _HomePageState extends State<HomePage> {
         onTap: (index) {
           setState(() {
             pageIndex = index;
+            pageController.jumpToPage(index);
           });
         },
         currentIndex: pageIndex,
