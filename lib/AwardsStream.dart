@@ -46,18 +46,18 @@ class AwardsStream extends StatefulWidget {
 }
 
 class _AwardsStreamState extends State<AwardsStream> {
-  TextEditingController search_controller = TextEditingController();
-  TextEditingController name_controller = TextEditingController();
-  TextEditingController url_controller = TextEditingController();
+  TextEditingController urlController = TextEditingController();
   bool error = false;
   bool loading = false;
   bool mostRecent = true;
   bool auditing = false;
+  Drawer drawer;
   List<Award> awards;
 
   String errorMessage = "";
   @override
   void initState() {
+    drawer = buildDrawer();
     super.initState();
     if (widget.collectionInfo.loaded) {
       awards = widget.collectionInfo.awards;
@@ -113,7 +113,7 @@ class _AwardsStreamState extends State<AwardsStream> {
     setState(() {
       loading = true;
     });
-    await uploadDoc(globals.firebaseUser, url_controller.text, widget.title);
+    await uploadDoc(globals.firebaseUser, urlController.text, widget.title);
     await loadAwards();
     if (mounted) {
       setState(() {
@@ -176,13 +176,14 @@ class _AwardsStreamState extends State<AwardsStream> {
 
   @override
   Widget build(BuildContext context) {
+    drawer = buildDrawer();
     if (awards == null && !loading && !error) {
       refresh();
     }
     return Scaffold(
-      endDrawer: buildDrawer(),
+      endDrawer: drawer,
       appBar: AppBar(
-        actions: <Widget>[],
+        actions: [CollectionActions()],
         leading: IconButton(
           icon: Icon(Icons.close, size: 30),
           onPressed: () => Navigator.of(context).pop(null),
@@ -367,57 +368,6 @@ class _AwardsStreamState extends State<AwardsStream> {
             ),
             margin: EdgeInsets.all(10.0),
           ),
-          /*Container(
-            height: MediaQuery.of(context).size.height * 0.7,
-            child: ListView.builder(
-              itemCount: documents.length,
-              itemBuilder: (context, index) {
-                return Dismissible(
-                  key: ObjectKey(documents[index]),
-                  child: RaisedButton(
-                    child: Text(documents[index].name),
-                    onPressed: () {
-                      pageIndex = index;
-                      setState(() {
-                        stream = AwardsStream(
-                          url: documents[index].url,
-                          title: documents[index].name,
-                        );
-                        Navigator.of(context).pop();
-                      });
-                    },
-                  ),
-                  onDismissed: (direction) {
-                    Document temp = documents[index];
-                    documents.removeAt(index);
-                    showDialog(
-                        context: context,
-                        builder: (context) {
-                          return AlertDialog(
-                            title: Text('Document deleted'),
-                            actions: <Widget>[
-                              new FlatButton(
-                                child: new Text('UNDO'),
-                                onPressed: () {
-                                  documents.insert(index, temp);
-                                  Navigator.of(context).pop();
-                                },
-                              ),
-                              new FlatButton(
-                                child: new Text('OK'),
-                                onPressed: () {
-                                  setState(() {});
-                                  Navigator.of(context).pop();
-                                },
-                              )
-                            ],
-                          );
-                        });
-                  },
-                );
-              },
-            ),
-          ),*/
           IconButton(
               icon: Icon(Icons.cloud_upload, size: 30), onPressed: () {}),
           RaisedButton(
@@ -434,7 +384,7 @@ class _AwardsStreamState extends State<AwardsStream> {
                           child: Column(
                             children: <TextField>[
                               TextField(
-                                controller: url_controller,
+                                controller: urlController,
                                 decoration: InputDecoration(
                                     hintText: "Google Docs url"),
                               ),
@@ -466,5 +416,44 @@ class _AwardsStreamState extends State<AwardsStream> {
         ],
       ),
     );
+  }
+}
+
+class CollectionActions extends StatelessWidget {
+  TextEditingController searchController = TextEditingController();
+  String getText() {
+    return searchController.text;
+  }
+  @override
+  Widget build(BuildContext context) {
+    // TODO: implement build
+    return Row(children: <Widget>[
+      IconButton(
+        icon: Icon(Icons.search),
+        onPressed: () {
+          showMenu(
+            context: context,
+            position: RelativeRect.fromLTRB(100, 100, 0, 0),
+            items: <PopupMenuEntry>[
+              PopupMenuItem(
+                child: Container(
+                  child: TextField(
+                    autocorrect: false,
+                    controller: searchController,
+                  ),
+                  width: 250,
+                ),
+              )
+            ],
+          );
+        },
+      ),
+      IconButton(
+        icon: Icon(Icons.menu),
+        onPressed: () {
+          Scaffold.of(context).openEndDrawer();
+        },
+      )
+    ]);
   }
 }

@@ -176,7 +176,7 @@ class NewLineFormState extends State<NewLineForm> {
       Card(
         color: widget.color,
         child: CustomPaint(
-            painter: TabPainter(fromLeft: 0.15, height: 36, color: Colors.green[200]),
+            painter: TabPainter(fromLeft: 0.15, height: 36, color: Colors.green[100]),
             child: widget.editing
                 ? Column(
                     children: <Widget>[
