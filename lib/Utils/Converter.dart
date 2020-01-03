@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart';
 import 'package:pearawards/Person.dart';
 
-import 'Award.dart';
-import 'AwardPage.dart';
+import 'package:pearawards/Awards/Award.dart';
+import 'package:pearawards/Awards/AwardPage.dart';
 
 String awardTitle = "";
 
@@ -390,5 +390,6 @@ Map awardToJson(Award award) {
   json["timestamp"] = award.timestamp;
   json["fromdoc"] = award.fromDoc;
   json["showYear"] = award.showYear;
+  json["nsfw"] = award.nsfw;
   return json;
 }

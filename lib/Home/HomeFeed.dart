@@ -6,14 +6,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart';
-import 'package:pearawards/AwardPage.dart';
-import 'package:pearawards/Converter.dart';
-import 'package:pearawards/Upload.dart';
-import 'Globals.dart' as globals;
+import 'package:pearawards/Awards/AwardPage.dart';
+import 'package:pearawards/Utils/Converter.dart';
+import 'package:pearawards/Utils/Upload.dart';
+import 'package:pearawards/Utils/Globals.dart' as globals;
 
-import 'Award.dart';
-import 'HomePage.dart';
-import 'echo.dart';
+import 'package:pearawards/Awards/Award.dart';
+import 'package:pearawards/App/HomePage.dart';
 
 int currentIndex = 0;
 

@@ -1,9 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:pearawards/Upload.dart';
+import 'package:pearawards/Utils/Upload.dart';
 import 'Award.dart';
-import 'CustomPainters.dart';
-import 'Globals.dart' as globals;
+import 'package:pearawards/Utils/CustomPainters.dart';
+import 'package:pearawards/Utils/Globals.dart' as globals;
 
 List<NewLineForm> lines = [];
 
@@ -57,7 +57,7 @@ class _AddQuoteState extends State<AddQuote> {
                               uid: globals.firebaseUser.uid,
                               name: globals.firebaseUser.displayName,
                             )),
-                        widget.title, true);
+                        widget.document, true);
                     Navigator.pop(context, true);
                   } else {
                     Navigator.pop(context, false);

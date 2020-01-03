@@ -1,11 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:pearawards/DisplayTools.dart';
-import 'package:string_similarity/string_similarity.dart';
+import 'package:pearawards/Awards/TagUser.dart';
+import 'package:pearawards/Utils/DisplayTools.dart';
+//import 'package:string_similarity/string_similarity.dart';
 import 'dart:math';
 
 import 'AwardPage.dart';
-import 'CustomPainters.dart';
+import 'package:pearawards/Utils/CustomPainters.dart';
 
 enum Difference { different, same, edited }
 
@@ -54,7 +55,9 @@ class Award extends StatelessWidget {
       this.timestamp,
       this.numQuotes,
       this.author,
-      this.fromDoc = false, this.showYear = false}) {
+      this.fromDoc = false,
+      this.showYear = false,
+      this.nsfw = false}) {
     for (Line l in quotes) {
       hash ^= l.getHash();
     }
@@ -65,20 +68,22 @@ class Award extends StatelessWidget {
       return null;
     }
     return Award(
-        fromDoc: jsonMap["fromdoc"],
-        showYear: jsonMap["showYear"],
-        timestamp: jsonMap["timestamp"],
-        quotes: q
-            .map(
-              (quote) => Line.fromJson(
-                quote,
-              ),
-            )
-            .toList(),
-        numQuotes: jsonMap["lines"].length,
-        author: Name.fromJson(
-          jsonMap["author"],
-        ));
+      fromDoc: jsonMap["fromdoc"],
+      showYear: jsonMap["showYear"],
+      timestamp: jsonMap["timestamp"],
+      quotes: q
+          .map(
+            (quote) => Line.fromJson(
+              quote,
+            ),
+          )
+          .toList(),
+      numQuotes: jsonMap["lines"].length,
+      author: Name.fromJson(
+        jsonMap["author"],
+      ),
+      nsfw: jsonMap["nsfw"],
+    );
   }
 
   int timestamp;
@@ -86,6 +91,7 @@ class Award extends StatelessWidget {
   final Name author;
   final List<Line> quotes;
   final bool fromDoc;
+  bool nsfw;
   bool showYear;
   DocumentReference docRef;
   int likes = 0;
@@ -98,6 +104,16 @@ class Award extends StatelessWidget {
       }
     }
     return false;
+  }
+
+  bool excludesPattern(String pattern) {
+    RegExp expression = RegExp(pattern, caseSensitive: false, unicode: true);
+    for (Line l in quotes) {
+      if (expression.hasMatch(l.message)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   @override
@@ -312,19 +328,33 @@ class Name extends StatelessWidget {
                 text: "- " + name,
                 style: TextStyle(
                   fontSize: 16.0,
-                  color: Colors.black87,
+                  color: uid == null ? Colors.black87 : Colors.green[700],
                 ),
               ),
             ),
             margin: EdgeInsets.only(bottom: 8.0),
           ),
-          onPressed: null),
+          onPressed: () {
+            Navigator.push(
+                context,
+                PageRouteBuilder(
+                  pageBuilder: (context, animation, secondaryAnimation) =>
+                      TagUser(),
+                  transitionsBuilder:
+                      (context, animation, secondaryAnimation, child) {
+                    return ScaleTransition(
+                        scale: animation.drive(CurveTween(curve: Curves.ease)),
+                        alignment: Alignment.center,
+                        child: child);
+                  },
+                ));
+          }),
       alignment: Alignment.centerRight,
     );
   }
 }
 
-Difference isDifferent(Award award1, Award award2) {
+/*Difference isDifferent(Award award1, Award award2) {
   for (Line l1 in award1.quotes) {
     for (Line l2 in award2.quotes) {
       double diff = StringSimilarity.compareTwoStrings(l1.message, l2.message);
@@ -335,3 +365,4 @@ Difference isDifferent(Award award1, Award award2) {
   }
   return Difference.different;
 }
+*/

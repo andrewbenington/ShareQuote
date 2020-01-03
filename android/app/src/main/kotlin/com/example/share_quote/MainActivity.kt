@@ -1,4 +1,4 @@
-package com.example.share_quote
+package com.example.pearawards
 
 import androidx.annotation.NonNull;
 import io.flutter.embedding.android.FlutterActivity

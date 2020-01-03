@@ -1,7 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:pearawards/LoginPage.dart';
-import 'AwardsStream.dart';
+import 'package:pearawards/App/LoginPage.dart';
 
 void main() => runApp(MyApp());
 
