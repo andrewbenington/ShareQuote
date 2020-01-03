@@ -1,9 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'AwardsStream.dart';
 import 'CreateProfile.dart';
-import 'Globals.dart' as globals;
+import 'package:pearawards/Utils/Globals.dart' as globals;
 import 'HomePage.dart';
 
 class LoginPage extends StatefulWidget {
@@ -174,6 +173,7 @@ class LoginPageState extends State<LoginPage> {
           email: email, password: password);
       globals.firebaseUser = result.user;
       globals.firebaseAuth = auth;
+      globals.loadedCollections = Map();
       Navigator.of(context).pushReplacement(MaterialPageRoute(
         builder: (context) => HomePage(),
       ));
@@ -218,7 +218,7 @@ class LoginPageState extends State<LoginPage> {
           email: email, password: pass);
       globals.firebaseUser = result.user;
       globals.firebaseAuth = auth;
-      Firestore.instance.document(result.user.uid).collection("friends");
+      Firestore.instance.document(result.user.uid).updateData({"friends" : ""});
       Navigator.of(context).pushReplacement(MaterialPageRoute(
         builder: (context) => HomePage(),
       ));

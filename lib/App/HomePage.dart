@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:pearawards/HomeFeed.dart';
-import 'package:pearawards/LoginPage.dart';
+import 'package:pearawards/Home/HomeFeed.dart';
+import 'package:pearawards/App/LoginPage.dart';
 
-import 'Award.dart';
-import 'AwardsStream.dart';
-import 'CollectionPage.dart';
-import 'Globals.dart' as globals;
-import 'ProfilePage.dart';
+import 'package:pearawards/Awards/Award.dart';
+import 'package:pearawards/Awards/AwardsStream.dart';
+import 'package:pearawards/Collections/CollectionPage.dart';
+import 'package:pearawards/Home/NotificationsPage.dart';
+import 'package:pearawards/Profile/User.dart';
+import 'package:pearawards/Utils/Globals.dart' as globals;
+import 'package:pearawards/Profile/ProfilePage.dart';
 
 final Document overripe = Document(
     url:
@@ -46,39 +48,88 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    var pages = <Widget>[CollectionPage(), HomeFeed(), ProfilePage()];
+    var pages = <Widget>[CollectionPage(), HomeFeed(), ProfilePage(User(displayName: globals.firebaseUser.displayName, uid: globals.firebaseUser.uid))];
+    List<AppBar> bars = [
+      AppBar(
+        backgroundColor: Colors.green,
+        title: Text("Collections"),
+        actions: <Widget>[
+          IconButton(
+            icon: Icon(Icons.search),
+            onPressed: () {
+              showMenu(
+                context: context,
+                position: RelativeRect.fromLTRB(100, 100, 0, 0),
+                items: <PopupMenuEntry>[
+                  PopupMenuItem(
+                    child: Container(
+                      child: TextField(
+                        autocorrect: false,
+                        controller: search_controller,
+                        onChanged: (text) {
+                          setState(() {
+                            AwardsStream.searchText = text;
+                          });
+                        },
+                      ),
+                      width: 250,
+                    ),
+                  )
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+      AppBar(
+        backgroundColor: Colors.green,
+        title: Text("Home"),
+        actions: <Widget>[
+          IconButton(
+            icon: Icon(
+              Icons.notifications,
+            ),
+            onPressed: () {
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (context) => NotificationsPage()));
+            },
+          ),
+        ],
+      ),
+      AppBar(
+        backgroundColor: Colors.green,
+        title: Text("Profile"),
+        actions: <Widget>[
+          IconButton(
+            icon: Icon(Icons.search),
+            onPressed: () {
+              showMenu(
+                context: context,
+                position: RelativeRect.fromLTRB(100, 100, 0, 0),
+                items: <PopupMenuEntry>[
+                  PopupMenuItem(
+                    child: Container(
+                      child: TextField(
+                        autocorrect: false,
+                        controller: search_controller,
+                        onChanged: (text) {
+                          setState(() {
+                            AwardsStream.searchText = text;
+                          });
+                        },
+                      ),
+                      width: 250,
+                    ),
+                  )
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    ];
     return Scaffold(
-      // appBar: AppBar(
-      //   backgroundColor: Colors.green,
-      //   title: Text("Home"),
-      //   actions: <Widget>[
-      //     IconButton(
-      //       icon: Icon(Icons.search),
-      //       onPressed: () {
-      //         showMenu(
-      //           context: context,
-      //           position: RelativeRect.fromLTRB(100, 100, 0, 0),
-      //           items: <PopupMenuEntry>[
-      //             PopupMenuItem(
-      //               child: Container(
-      //                 child: TextField(
-      //                   autocorrect: false,
-      //                   controller: search_controller,
-      //                   onChanged: (text) {
-      //                     setState(() {
-      //                       AwardsStream.searchText = text;
-      //                     });
-      //                   },
-      //                 ),
-      //                 width: 250,
-      //               ),
-      //             )
-      //           ],
-      //         );
-      //       },
-      //     ),
-      //   ],
-      // ),
+      appBar: bars[pageIndex],
       body: PageView(
         controller: pageController,
         children: pages,

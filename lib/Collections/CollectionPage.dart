@@ -1,16 +1,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:pearawards/AwardsStream.dart';
-import 'package:pearawards/Upload.dart';
+import 'package:pearawards/Awards/AwardsStream.dart';
+import 'package:pearawards/Utils/Upload.dart';
 import 'Collection.dart';
-import 'Globals.dart' as globals;
+import 'package:pearawards/Utils/Globals.dart' as globals;
 
-import 'CustomPainters.dart';
+import 'package:pearawards/Utils/CustomPainters.dart';
+
+import 'NewCollection.dart';
 
 int currentIndex = 0;
 
 String awardTitle = "";
-CollectionReference collections;
+List<Collection> collections;
 int length;
 
 bool error = false;
@@ -58,23 +60,46 @@ class _CollectionPageState extends State<CollectionPage> {
   @override
   void initState() {
     super.initState();
-    if (collections == null) {
       loadCollections(widget.url);
-    }
+    
   }
 
   loadCollections(String url) async {
     loading = true;
     var coll = Firestore.instance
-        .collection('users')
-        .document(globals.firebaseUser.uid)
-        .collection('collections');
-    collections = coll;
-    loading = false;
+        .collection('users/' + globals.firebaseUser.uid + '/collections');
+
+    collections = await coll.getDocuments().then((colls) {
+      return colls.documents.map((document) {
+        if (globals.loadedCollections[document.documentID] == null) {
+          if (document.data["isPointer"]) {
+            loadFriendCollection(document.reference);
+          } else {
+            globals.loadedCollections[document.documentID] = Collection(
+                docRef: document.reference,
+                title: document.data["name"],
+                owner: document.data["owner"],);
+          }
+        }
+        return globals.loadedCollections[document.documentID];
+      }).toList();
+    });
     if (coll == null) {
       error = true;
     }
-    setState(() {});
+    loading = false;
+
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  loadFriendCollection(DocumentReference reference) async {
+    DocumentSnapshot document = await reference.get();
+    globals.loadedCollections[document.documentID] = Collection(
+        docRef: document.reference,
+        title: document.data["name"],
+        owner: document.data["owner"]);
   }
 
   @override
@@ -112,60 +137,28 @@ class _CollectionPageState extends State<CollectionPage> {
                       },
                     )
                   : CircularProgressIndicator()),
-      /*floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          UploadDoc(
-              globals.firebaseUser, Document(name: awardTitle, awards: awards));
-        },
-        tooltip: 'Increment',
-        child: Icon(Icons.check),
-      ),*/
     );
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold();
   }
 
   Widget buildGrid() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: collections.snapshots(),
-      builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
-        if (snapshot.hasError) return new Text('Error: ${snapshot.error}');
-        switch (snapshot.connectionState) {
-          case ConnectionState.waiting:
-            return CircularProgressIndicator();
-          default:
-            return new GridView(
-              gridDelegate:
-                  SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2),
-              children:
-                  snapshot.data.documents.map((DocumentSnapshot document) {
-                    if(globals.loadedCollections[document.documentID] == null) {
-                      globals.loadedCollections[document.documentID] = Collection(docRef: document.reference);
-                    }
-                        return new GridTile(
-                            child: CollectionTile(
-                          c: globals.loadedCollections[document.documentID],
-                        ));
-                      }).toList() +
-                      [GridTile(child: buildNewCollectionButton())],
-            );
-        }
+    return GridView.builder(
+      itemCount: collections.length + 1,
+      itemBuilder: (BuildContext context, int index) {
+        return index == collections.length
+            ? GridTile(child: buildNewCollectionButton())
+            : GridTile(child: CollectionTile(c: collections[index]));
       },
+      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 200.0,
+      ),
     );
   }
 
   Widget buildNewCollectionButton() {
-    // TODO: implement build
     return Padding(
         padding: EdgeInsets.all(60),
         child: FlatButton(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(80)),
+          shape: CircleBorder(),
           child: Icon(
             Icons.add,
             size: 40,
@@ -221,7 +214,6 @@ class CollectionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // TODO: implement build
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
       child: CustomPaint(
@@ -233,7 +225,10 @@ class CollectionTile extends StatelessWidget {
               growRoute(c),
             );
           },
-          child: Text(c.docRef.documentID, style: TextStyle(fontSize: 28),),
+          child: Text(
+            c.title,
+            style: TextStyle(fontSize: 28),
+          ),
         ),
       ),
       margin: EdgeInsets.all(10),
@@ -245,7 +240,7 @@ Route growRoute(Collection c) {
   return PageRouteBuilder(
     pageBuilder: (context, animation, secondaryAnimation) => AwardsStream(
       collectionInfo: c,
-      title: c.docRef.documentID,
+      title: c.title,
     ),
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
       return ScaleTransition(

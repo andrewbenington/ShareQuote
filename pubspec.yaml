@@ -28,7 +28,7 @@ dependencies:
   firebase_auth: ^0.15.1
   firebase_core: ^0.4.2
   cloud_firestore: ^0.12.9+4
-  string_similarity: ^1.0.1
+  #string_similarity: ^1.0.1
   shared_preferences: ^0.4.3
 
 dev_dependencies:

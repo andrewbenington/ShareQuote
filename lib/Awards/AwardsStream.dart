@@ -2,28 +2,20 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart';
 import 'dart:convert';
-import 'package:pearawards/Converter.dart';
-import 'package:pearawards/Upload.dart';
+import 'package:pearawards/Utils/Converter.dart';
+import 'package:pearawards/Utils/Upload.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'AddQuote.dart';
-import 'Globals.dart' as globals;
+import 'package:pearawards/Utils/Globals.dart' as globals;
 
 import 'Award.dart';
-import 'Collection.dart';
+import 'package:pearawards/Collections/Collection.dart';
 
 int currentIndex = 0;
 
 class AwardsStream extends StatefulWidget {
   static String searchText;
-  AwardsStream({Key key, this.collectionInfo, this.title}) : super(key: key) {
-    setTitle();
-  }
-
-  void setTitle() async {
-    title = await collectionInfo.docRef.get().then((doc) {
-      return doc.documentID;
-    });
-  }
+  AwardsStream({Key key, this.collectionInfo, this.title}) : super(key: key);
 
   // This widget is the home page of your application. It is stateful, meaning
   // that it has a State object (defined below) that contains fields that affect
@@ -51,6 +43,8 @@ class _AwardsStreamState extends State<AwardsStream> {
   bool loading = false;
   bool mostRecent = true;
   bool auditing = false;
+  bool visibleToPublic = false;
+  bool visibleToFriends = false;
   Drawer drawer;
   List<Award> awards;
 
@@ -113,7 +107,8 @@ class _AwardsStreamState extends State<AwardsStream> {
     setState(() {
       loading = true;
     });
-    await uploadDoc(globals.firebaseUser, urlController.text, widget.title);
+    await uploadDoc(
+        globals.firebaseUser, urlController.text, widget.collectionInfo.docRef);
     await loadAwards();
     if (mounted) {
       setState(() {
@@ -188,7 +183,11 @@ class _AwardsStreamState extends State<AwardsStream> {
           icon: Icon(Icons.close, size: 30),
           onPressed: () => Navigator.of(context).pop(null),
         ),
-        title: Text(widget.title),
+        title: Container(
+          child: FittedBox(fit: BoxFit.scaleDown, child: Text(widget.title)),
+          margin: EdgeInsets.only(bottom: 15.0, top: 8.0),
+          alignment: Alignment.center,
+        ),
       ),
       backgroundColor: Colors.green[200],
       body: Center(
@@ -215,10 +214,10 @@ class _AwardsStreamState extends State<AwardsStream> {
                           //     : colorFromID(_user.id),
                           child: ListView(
                             children: mostRecent
-                                ? awards
-                                    .map(
-                                        (a) => buildAwardCard(context, a, true))
-                                    .toList()
+                                ? awards.map((a) {
+                                  return a.excludesPattern("poo|fuck|Jesus|God|dick|shit|fleshlight") ? 
+                                    buildAwardCard(context, a, true) : Container();
+                                  }).toList()
                                 : awards
                                     .map(
                                         (a) => buildAwardCard(context, a, true))
@@ -298,8 +297,8 @@ class _AwardsStreamState extends State<AwardsStream> {
 
     inDoc.forEach((dHash, dAward) {
       dAward.showYear = false;
-      uploadNewAward(
-          globals.firebaseUser, dAward, widget.title, inServer[dHash] == null);
+      uploadNewAward(globals.firebaseUser, dAward, widget.collectionInfo.docRef,
+          inServer[dHash] == null);
     });
     inServer.forEach((sHash, sAward) {
       sAward.docRef.delete();
@@ -312,7 +311,7 @@ class _AwardsStreamState extends State<AwardsStream> {
         context,
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) => AddQuote(
-            title: widget.title,
+            document: widget.collectionInfo.docRef,
           ),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return ScaleTransition(
@@ -330,91 +329,219 @@ class _AwardsStreamState extends State<AwardsStream> {
 
   Drawer buildDrawer() {
     return Drawer(
-      child: Column(
-        children: <Widget>[
-          AppBar(
-            backgroundColor: Colors.green,
-            title: Text("Options"),
-          ),
-          Container(
-            child: Row(
-              children: <Widget>[
-                Text("Order: "),
-                Expanded(
-                  child: ChoiceChip(
-                    labelStyle: TextStyle(
-                        color: mostRecent ? Colors.green : Colors.black87),
-                    label: Text('Latest'),
-                    onSelected: (bool selected) {
-                      setState(() {
-                        mostRecent = selected;
-                      });
-                    },
-                    selected: mostRecent,
-                  ),
-                ),
-                Expanded(
-                  child: ChoiceChip(
-                    label: Text('First'),
-                    onSelected: (bool selected) {
-                      setState(() {
-                        mostRecent = !selected;
-                      });
-                    },
-                    selected: !mostRecent,
-                  ),
-                ),
-              ],
-            ),
-            margin: EdgeInsets.all(10.0),
-          ),
-          IconButton(
-              icon: Icon(Icons.cloud_upload, size: 30), onPressed: () {}),
-          RaisedButton(
-            child: Text("New Document"),
-            onPressed: () {
-              setState(() {
-                showDialog(
-                    context: context,
-                    builder: (context) {
-                      return AlertDialog(
-                        title: Text('Add new document'),
-                        content: Container(
-                          height: MediaQuery.of(context).size.height * 0.13,
-                          child: Column(
-                            children: <TextField>[
-                              TextField(
-                                controller: urlController,
-                                decoration: InputDecoration(
-                                    hintText: "Google Docs url"),
-                              ),
-                            ],
-                          ),
-                        ),
-                        actions: <Widget>[
-                          new FlatButton(
-                            child: new Text('CANCEL'),
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                            },
-                          ),
-                          new FlatButton(
-                            child: new Text('ADD'),
-                            onPressed: () {
-                              addGoogleDoc();
-                              Navigator.of(context).pop();
-                            },
-                          )
-                        ],
-                      );
+        child: widget.collectionInfo.owner == globals.firebaseUser.uid
+            ? ownerDrawer()
+            : followerDrawer());
+  }
+
+  Widget followerDrawer() {
+    return Column(
+      children: <Widget>[
+        AppBar(
+          actions: <Widget>[Container()],
+          backgroundColor: Colors.green,
+          title: Text("Options"),
+        ),
+        Container(
+          child: Row(
+            children: <Widget>[
+              Text("Order: "),
+              Expanded(
+                child: ChoiceChip(
+                  labelStyle: TextStyle(
+                      color: mostRecent ? Colors.green : Colors.black87),
+                  label: Text('Latest'),
+                  onSelected: (bool selected) {
+                    setState(() {
+                      mostRecent = selected;
                     });
-              });
-            },
+                  },
+                  selected: mostRecent,
+                ),
+              ),
+              Expanded(
+                child: ChoiceChip(
+                  label: Text('First'),
+                  onSelected: (bool selected) {
+                    setState(() {
+                      mostRecent = !selected;
+                    });
+                  },
+                  selected: !mostRecent,
+                ),
+              ),
+            ],
           ),
-          RaisedButton(
-              child: Text("Delete Document"), onPressed: deleteCollection)
-        ],
-      ),
+          margin: EdgeInsets.all(10.0),
+        ),
+        RaisedButton(
+          child: Text("Add to My Collections"),
+          onPressed: () {
+            setState(() {
+              addFriendCollection(globals.firebaseUser, widget.collectionInfo);
+            });
+          },
+        ),
+        Spacer(),
+        FlatButton(
+          child: SizedBox(
+              height: 20,
+              width: double.infinity,
+              child: Text(
+                "Delete Document",
+                style: TextStyle(color: Colors.red),
+              )),
+          onPressed: deleteCollection,
+          padding: EdgeInsets.only(bottom: 20.0, left: 15.0),
+        ),
+      ],
+    );
+  }
+
+  Widget ownerDrawer() {
+    return Column(
+      children: <Widget>[
+        AppBar(
+          actions: <Widget>[Container()],
+          backgroundColor: Colors.green,
+          title: Text("Options"),
+        ),
+        Container(
+          child: Row(
+            children: <Widget>[
+              Text("Order: "),
+              Expanded(
+                child: ChoiceChip(
+                  labelStyle: TextStyle(
+                      color: mostRecent ? Colors.green : Colors.black87),
+                  label: Text('Latest'),
+                  onSelected: (bool selected) {
+                    setState(() {
+                      mostRecent = selected;
+                    });
+                  },
+                  selected: mostRecent,
+                ),
+              ),
+              Expanded(
+                child: ChoiceChip(
+                  label: Text('First'),
+                  onSelected: (bool selected) {
+                    setState(() {
+                      mostRecent = !selected;
+                    });
+                  },
+                  selected: !mostRecent,
+                ),
+              ),
+            ],
+          ),
+          margin: EdgeInsets.all(10.0),
+        ),
+        FlatButton(
+            child: SizedBox(
+              height: 20,
+              width: double.infinity,
+              child: Row(
+                children: <Widget>[
+                  Text(
+                    "Visible to the public",
+                  ),
+                  Checkbox(
+                    value: visibleToPublic,
+                    onChanged: (newValue) {
+                      visibleToPublic = newValue;
+                      visibleToFriends |= visibleToPublic;
+                      setState(() {});
+                    },
+                  )
+                ],
+              ),
+            ),
+            onPressed: () {
+              visibleToPublic = !visibleToPublic;
+              visibleToFriends |= visibleToPublic;
+              setState(() {});
+            }),
+        FlatButton(
+            child: SizedBox(
+              height: 20,
+              width: double.infinity,
+              child: Row(
+                children: <Widget>[
+                  Text(
+                    "Visible to friends",
+                  ),
+                  Checkbox(
+                    value: visibleToFriends,
+                    onChanged: (newValue) {
+                      visibleToFriends = newValue;
+                      visibleToPublic &= visibleToFriends;
+                      setState(() {});
+                    },
+                  )
+                ],
+              ),
+            ),
+            onPressed: () {
+              visibleToFriends = !visibleToFriends;
+              visibleToPublic &= visibleToFriends;
+              setState(() {});
+            }),
+        RaisedButton(
+          child: Text("New Document"),
+          onPressed: () {
+            setState(() {
+              showDialog(
+                  context: context,
+                  builder: (context) {
+                    return AlertDialog(
+                      title: Text('Add new document'),
+                      content: Container(
+                        height: MediaQuery.of(context).size.height * 0.13,
+                        child: Column(
+                          children: <TextField>[
+                            TextField(
+                              controller: urlController,
+                              decoration:
+                                  InputDecoration(hintText: "Google Docs url"),
+                            ),
+                          ],
+                        ),
+                      ),
+                      actions: <Widget>[
+                        new FlatButton(
+                          child: new Text('CANCEL'),
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                        ),
+                        new FlatButton(
+                          child: new Text('ADD'),
+                          onPressed: () {
+                            addGoogleDoc();
+                            Navigator.of(context).pop();
+                          },
+                        )
+                      ],
+                    );
+                  });
+            });
+          },
+        ),
+        Spacer(),
+        FlatButton(
+          child: SizedBox(
+              height: 20,
+              width: double.infinity,
+              child: Text(
+                "Delete Document",
+                style: TextStyle(color: Colors.red),
+              )),
+          onPressed: deleteCollection,
+          padding: EdgeInsets.only(bottom: 20.0, left: 15.0),
+        ),
+      ],
     );
   }
 }
@@ -424,9 +551,9 @@ class CollectionActions extends StatelessWidget {
   String getText() {
     return searchController.text;
   }
+
   @override
   Widget build(BuildContext context) {
-    // TODO: implement build
     return Row(children: <Widget>[
       IconButton(
         icon: Icon(Icons.search),
