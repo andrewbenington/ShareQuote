@@ -19,7 +19,7 @@ class AddFriend extends StatefulWidget {
 class _AddFriendState extends State<AddFriend> {
   List<User> users = [];
   bool mostRecent = true;
-  String errorMessage = "";
+  String errorMessage = '';
 
   @override
   void initState() {
@@ -37,7 +37,7 @@ class _AddFriendState extends State<AddFriend> {
             Navigator.pop(context, false);
           },
         ),
-        title: Text("Add Friends"),
+        title: Text('Add Friends'),
       ),
       backgroundColor: Colors.green[200],
       body: StreamBuilder(
@@ -57,8 +57,8 @@ class _AddFriendState extends State<AddFriend> {
                           users[index].documentID != globals.firebaseUser.uid) {
                         return userTab(
                             users[index].documentID,
-                            users[index].data["display"],
-                            users[index].data["image"],
+                            users[index].data['display'],
+                            users[index].data['image'],
                             friends[users[index].documentID] == false,
                             sentRequests[users[index].documentID] == true);
                       } else {
@@ -108,7 +108,7 @@ class _AddFriendState extends State<AddFriend> {
                 children: <Widget>[
                   Container(
                     child: Text(
-                      "Request Received",
+                      'Request Received',
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                     padding: EdgeInsets.only(right: 18, top: 5.0),
@@ -187,47 +187,47 @@ class _AddFriendState extends State<AddFriend> {
 
   confirmFriendRequest(String uid) async {
     DocumentReference me = Firestore.instance
-        .collection("users")
+        .collection('users')
         .document(globals.firebaseUser.uid);
     DocumentReference them =
-        Firestore.instance.collection("users").document(uid);
-    if ((await them.get()).data["friends"] == null) {
+        Firestore.instance.collection('users').document(uid);
+    if ((await them.get()).data['friends'] == null) {
       them.setData({
-        "friends": {globals.firebaseUser.uid: true}
+        'friends': {globals.firebaseUser.uid: true}
       }, merge: true);
       them.updateData({
-        "sentRequests." + globals.firebaseUser.uid: null,
-        "lastNotification": DateTime.now().microsecondsSinceEpoch
+        'sentRequests.${globals.firebaseUser.uid}': null,
+        'lastNotification': DateTime.now().microsecondsSinceEpoch
       });
     } else {
       them.updateData({
-        "friends." + globals.firebaseUser.uid: true,
-        "sentRequests." + globals.firebaseUser.uid: null,
-        "lastNotification": DateTime.now().microsecondsSinceEpoch
+        'friends.${globals.firebaseUser.uid}': true,
+        'sentRequests.${globals.firebaseUser.uid}': null,
+        'lastNotification': DateTime.now().microsecondsSinceEpoch
       });
     }
 
     me.updateData({
-      "friends." + uid: true,
-      "sentRequests." + uid: null,
-      "lastNotification": DateTime.now().microsecondsSinceEpoch
+      'friends.$uid': true,
+      'sentRequests.$uid': null,
+      'lastNotification': DateTime.now().microsecondsSinceEpoch
     });
     loadFriends();
   }
 
   sendFriendRequest(String uid) async {
     DocumentReference me = Firestore.instance
-        .collection("users")
+        .collection('users')
         .document(globals.firebaseUser.uid);
     DocumentReference them =
-        Firestore.instance.collection("users").document(uid);
+        Firestore.instance.collection('users').document(uid);
     Map data = (await them.get()).data;
-    Map theirFriends = data["friends"];
-    sentRequests = (await me.get()).data["sentRequests"];
+    Map theirFriends = data['friends'];
+    sentRequests = (await me.get()).data['sentRequests'];
     if (theirFriends == null) {
       them.updateData({
-        "friends": {globals.firebaseUser.uid: false},
-        "lastNotification": DateTime.now().microsecondsSinceEpoch
+        'friends': {globals.firebaseUser.uid: false},
+        'lastNotification': DateTime.now().microsecondsSinceEpoch
       });
     } else {
       if (theirFriends[globals.firebaseUser.uid] == null) {
@@ -235,23 +235,23 @@ class _AddFriendState extends State<AddFriend> {
       } else {
         theirFriends[globals.firebaseUser.uid] = true;
         sentRequests.remove(uid);
-        me.updateData({"friends." + uid: true, "sentRequests": sentRequests});
+        me.updateData({'friends.$uid': true, 'sentRequests': sentRequests});
       }
       them.updateData({
-        "friends": theirFriends,
-        "lastNotification": DateTime.now().microsecondsSinceEpoch
+        'friends': theirFriends,
+        'lastNotification': DateTime.now().microsecondsSinceEpoch
       });
     }
-    them.collection("notifications").document().setData({
-      "notification": 3,
-      "uid": globals.firebaseUser.uid,
-      "time": DateTime.now().microsecondsSinceEpoch,
-      "name": globals.firebaseUser.displayName,
+    them.collection('notifications').document().setData({
+      'notification': 3,
+      'uid': globals.firebaseUser.uid,
+      'time': DateTime.now().microsecondsSinceEpoch,
+      'name': globals.firebaseUser.displayName,
     });
 
     Firestore.instance
-        .document("users/" + globals.firebaseUser.uid)
-        .updateData({"sentRequests." + uid: true});
+        .document('users/${globals.firebaseUser.uid}')
+        .updateData({'sentRequests.$uid': true});
     loadFriends();
   }
 
@@ -259,10 +259,10 @@ class _AddFriendState extends State<AddFriend> {
 
   loadFriends() async {
     var me = await Firestore.instance
-        .document("users/" + globals.firebaseUser.uid)
+        .document('users/${globals.firebaseUser.uid}')
         .get();
-    friends = me.data["friends"];
-    sentRequests = me.data["sentRequests"];
+    friends = me.data['friends'];
+    sentRequests = me.data['sentRequests'];
     if (friends == null) {
       friends = Map();
     }

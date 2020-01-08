@@ -1,11 +1,6 @@
-import 'dart:isolate';
-
-import 'package:flutter/material.dart';
 import 'package:http/http.dart';
-import 'package:pearawards/Person.dart';
 
 import 'package:pearawards/Awards/Award.dart';
-import 'package:pearawards/Awards/AwardPage.dart';
 
 String awardTitle = "";
 
@@ -132,8 +127,6 @@ Future<List<Award>> convertAwards(String file) async {
         currentState = CurrentState.unknown;
         break;
       case CurrentState.year:
-        //print("year: " + line);
-
         int newYear = 0;
         while (index < line.length &&
             line.codeUnitAt(index) >= 48 &&
@@ -143,8 +136,6 @@ Future<List<Award>> convertAwards(String file) async {
           index++;
         }
         currentYear = newYear;
-
-        //print("new year: " + currentYear.toString());
         currentState = CurrentState.unknown;
         break;
       case CurrentState.quote:
@@ -198,8 +189,6 @@ Future<List<Award>> convertAwards(String file) async {
             }
           }
         }
-        //print("new quote: " + newQuote + '\n');
-
         quoteLines.add(newQuote);
         quoteNames.add(defaultName);
         currentState = CurrentState.unknown;
@@ -222,8 +211,6 @@ Future<List<Award>> convertAwards(String file) async {
             index++;
           }
         }
-        //print("new action: " + newAction + '\n');
-
         quoteLines.add(newAction);
         quoteNames.add(null);
         currentState = CurrentState.unknown;
@@ -321,7 +308,8 @@ Future<List<Award>> convertAwards(String file) async {
       case CurrentState.award:
         if (quotes.length != 0) {
           awards.add(Award(
-              timestamp: DateTime(currentYear).microsecondsSinceEpoch + awards.length,
+              timestamp:
+                  DateTime(currentYear).microsecondsSinceEpoch + awards.length,
               quotes: quotes,
               numQuotes: quotes.length,
               fromDoc: true,
@@ -371,7 +359,7 @@ Map awardToJson(Award award) {
       if (q.name != null) {
         nameMap["name"] = q.name.name;
         if (q.name.uid != null) {
-          nameMap["uid"] = "";
+          nameMap["uid"] = q.name.uid;
         }
       }
 
@@ -391,5 +379,6 @@ Map awardToJson(Award award) {
   json["fromdoc"] = award.fromDoc;
   json["showYear"] = award.showYear;
   json["nsfw"] = award.nsfw;
+  json["docPath"] = award.docPath;
   return json;
 }

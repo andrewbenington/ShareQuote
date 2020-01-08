@@ -9,7 +9,6 @@ List<NewLineForm> lines = [];
 
 class AddQuote extends StatefulWidget {
   AddQuote({Key key, this.document, this.title}) : super(key: key);
-  
 
   final DocumentReference document;
   final String title;
@@ -49,7 +48,7 @@ class _AddQuoteState extends State<AddQuote> {
                   }
                   if (quotes.length > 0) {
                     uploadNewAward(
-                        globals.firebaseUser,
+                        'users/${globals.firebaseUser.uid}/created_awards',
                         Award(
                             quotes: quotes,
                             timestamp: DateTime.now().microsecondsSinceEpoch,
@@ -57,7 +56,8 @@ class _AddQuoteState extends State<AddQuote> {
                               uid: globals.firebaseUser.uid,
                               name: globals.firebaseUser.displayName,
                             )),
-                        widget.document, true);
+                        widget.document,
+                        true);
                     Navigator.pop(context, true);
                   } else {
                     Navigator.pop(context, false);
@@ -176,7 +176,8 @@ class NewLineFormState extends State<NewLineForm> {
       Card(
         color: widget.color,
         child: CustomPaint(
-            painter: TabPainter(fromLeft: 0.15, height: 36, color: Colors.green[100]),
+            painter: TabPainter(
+                fromLeft: 0.15, height: 36, color: Colors.green[100]),
             child: widget.editing
                 ? Column(
                     children: <Widget>[

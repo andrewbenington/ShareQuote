@@ -12,6 +12,7 @@ class TagUser extends StatefulWidget {
 }
 
 class _TagUserState extends State<TagUser> {
+  List<DocumentSnapshot> users = [];
   int selectedIndex;
   @override
   void initState() {
@@ -26,17 +27,25 @@ class _TagUserState extends State<TagUser> {
         leading: IconButton(
           icon: Icon(Icons.close, size: 30),
           onPressed: () {
-            Navigator.pop(context, false);
+            Navigator.pop(context, null);
           },
         ),
-        title: Text("Tag Someone"),
+        title: Text('Tag Someone'),
+        actions: <Widget>[
+          IconButton(
+            icon: Icon(Icons.check, size: 30),
+            onPressed: () {
+              Navigator.pop(context, users[selectedIndex].documentID);
+            },
+          ),
+        ],
       ),
       backgroundColor: Colors.green[200],
       body: StreamBuilder(
           stream: Firestore.instance.collection('users').snapshots(),
           builder: (context, snapshot) {
             var data = snapshot.data;
-            List<DocumentSnapshot> users = [];
+            
             if (data != null) {
               users = snapshot.data.documents;
             }
@@ -46,8 +55,8 @@ class _TagUserState extends State<TagUser> {
                     itemBuilder: (BuildContext context, int index) {
                       return userTab(
                           User(
-                              displayName: users[index].data["display"],
-                              imageUrl: users[index].data["image"],
+                              displayName: users[index].data['display'],
+                              imageUrl: users[index].data['image'],
                               uid: users[index].documentID),
                           index == selectedIndex,
                           index); // This will build a list of Text widgets with the values from the List<String> that is stored in the streambuilder snapshot
@@ -106,84 +115,12 @@ class _TagUserState extends State<TagUser> {
     );
   }
 
-  confirmFriendRequest(String uid) async {
-    DocumentReference me = Firestore.instance
-        .collection("users")
-        .document(globals.firebaseUser.uid);
-    DocumentReference them =
-        Firestore.instance.collection("users").document(uid);
-    if ((await them.get()).data["friends"] == null) {
-      them.setData({
-        "friends": {globals.firebaseUser.uid: true}
-      }, merge: true);
-      them.updateData({
-        "sentRequests." + globals.firebaseUser.uid: null,
-        "lastNotification": DateTime.now().microsecondsSinceEpoch
-      });
-    } else {
-      them.updateData({
-        "friends." + globals.firebaseUser.uid: true,
-        "sentRequests." + globals.firebaseUser.uid: null,
-        "lastNotification": DateTime.now().microsecondsSinceEpoch
-      });
-    }
-
-    me.updateData({
-      "friends." + uid: true,
-      "sentRequests." + uid: null,
-      "lastNotification": DateTime.now().microsecondsSinceEpoch
-    });
-    loadFriends();
-  }
-
-  sendFriendRequest(String uid) async {
-    DocumentReference me = Firestore.instance
-        .collection("users")
-        .document(globals.firebaseUser.uid);
-    DocumentReference them =
-        Firestore.instance.collection("users").document(uid);
-    Map data = (await them.get()).data;
-    Map theirFriends = data["friends"];
-    sentRequests = (await me.get()).data["sentRequests"];
-    if (theirFriends == null) {
-      them.updateData({
-        "friends": {globals.firebaseUser.uid: false},
-        "lastNotification": DateTime.now().microsecondsSinceEpoch
-      });
-    } else {
-      if (theirFriends[globals.firebaseUser.uid] == null) {
-        theirFriends[globals.firebaseUser.uid] = false;
-      } else {
-        theirFriends[globals.firebaseUser.uid] = true;
-        sentRequests.remove(uid);
-        me.updateData({"friends." + uid: true, "sentRequests": sentRequests});
-      }
-      them.updateData({
-        "friends": theirFriends,
-        "lastNotification": DateTime.now().microsecondsSinceEpoch
-      });
-    }
-    them.collection("notifications").document().setData({
-      "notification": 3,
-      "uid": globals.firebaseUser.uid,
-      "time": DateTime.now().microsecondsSinceEpoch,
-      "name": globals.firebaseUser.displayName,
-    });
-
-    Firestore.instance
-        .document("users/" + globals.firebaseUser.uid)
-        .updateData({"sentRequests." + uid: true});
-    loadFriends();
-  }
-
-  cancelFriendRequest(String uid) async {}
-
   loadFriends() async {
     var me = await Firestore.instance
-        .document("users/" + globals.firebaseUser.uid)
+        .document('users/${globals.firebaseUser.uid}')
         .get();
-    friends = me.data["friends"];
-    sentRequests = me.data["sentRequests"];
+    friends = me.data['friends'];
+    sentRequests = me.data['sentRequests'];
     if (friends == null) {
       friends = Map();
     }

@@ -1,26 +1,20 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:pearawards/Awards/AddQuote.dart';
+import 'package:pearawards/Awards/AwardsStream.dart';
+import 'package:pearawards/Collections/Collection.dart';
+import 'package:pearawards/Profile/User.dart';
 import 'package:flutter/material.dart';
-import 'dart:convert';
-import 'package:http/http.dart';
 import 'package:pearawards/Awards/AwardPage.dart';
 import 'package:pearawards/Utils/Converter.dart';
-import 'package:pearawards/Utils/Upload.dart';
 import 'package:pearawards/Utils/Globals.dart' as globals;
-
 import 'package:pearawards/Awards/Award.dart';
-import 'package:pearawards/App/HomePage.dart';
-
-int currentIndex = 0;
-
-StreamBuilder<QuerySnapshot> awards;
-
-bool error = false;
-bool loading = false;
-bool mostRecent = true;
+import 'package:pearawards/Utils/Globals.dart' as globals;
+import 'package:pearawards/Utils/Utils.dart';
 
 class HomeFeed extends StatefulWidget {
   static String searchText;
@@ -36,9 +30,6 @@ class HomeFeed extends StatefulWidget {
 
   @override
   _HomeFeedState createState() => _HomeFeedState();
-  void setMostRecent(bool setto) {
-    mostRecent = setto;
-  }
 
   void setSearchText(String search) {
     searchText = search;
@@ -51,127 +42,94 @@ class HomeFeed extends StatefulWidget {
 }
 
 class _HomeFeedState extends State<HomeFeed> {
-  TextEditingController search_controller = TextEditingController();
-  TextEditingController name_controller = TextEditingController();
-  TextEditingController url_controller = TextEditingController();
   bool mostRecent = true;
   String errorMessage = "";
+  PrimitiveWrapper shouldLoad = PrimitiveWrapper(false);
+  PrimitiveWrapper isLoading = PrimitiveWrapper(false);
+  final PrimitiveWrapper noAwards = PrimitiveWrapper(false);
+
   @override
   void initState() {
     super.initState();
   }
 
-  StreamBuilder<QuerySnapshot> awardStream(DocumentReference document) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: document.collection("awards").orderBy("timestamp",descending: true).snapshots(),
-      builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
-        if (snapshot.hasError) return new Text('Error: ${snapshot.error}');
-        switch (snapshot.connectionState) {
-          case ConnectionState.waiting:
-            return new Text('Loading...');
-          default:
-            return ListView(
-                children:
-                    snapshot.data.documents.map((DocumentSnapshot document) {
-              Map json = jsonDecode(document.data["json"]);
-              return buildAwardCard(context, Award.fromJson(json), true);
-            }).toList());
-        }
-      },
-    );
-  }
-
-  loadAwardsFromDoc(String url) async {
-    loading = true;
-    Result result = await retrieveAwards(url);
-    if (!result.success) {
-      error = true;
-      errorMessage = result.error;
-    } else {
-      error = false;
-      //awards = result.awards;
-      awardTitle = result.title;
-    }
-
-    loading = false;
-    if (awards == null) {
-      error = true;
-    }
+  Future<void> refresh() async {
+    shouldLoad.value = true;
     setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
-    /*if (awards == null && !loading && !error ||
-        awards != null && awards.length == 0) {
-      loadAwards(widget.url);
-    }*/
     return Scaffold(
-      
       backgroundColor: Colors.green[200],
-      body: Center(
-          // Center is a layout widget. It takes a single child and positions it
-          // in the middle of the parent.
-          child: error
-              ? Column(children: <Widget>[
-                  Spacer(),
-                  Text(errorMessage),
-                  RaisedButton(
-                    child: Text("Try again"),
-                    onPressed: () {
-                      
-                    },
-                  ),
-                  Spacer()
-                ])
-              : awards != null && loading == false
-                  ? RefreshIndicator(
-                      backgroundColor: Colors.white,
-                      // backgroundColor: _user == null
-                      //     ? Theme.of(context).primaryColor
-                      //     : colorFromID(_user.id),
-                      //child: awardStream(widget.document),
-                      onRefresh: () async {
-                        //awardStream(widget.document);
-                        return;
+      body: Stack(children: <Widget>[
+        Center(
+          child: RefreshIndicator(
+            child: noAwards.value && !isLoading.value
+                ? ListView(children: [
+                    SizedBox(
+                      height: MediaQuery.of(context).size.height * 0.7,
+                        child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                          Text(
+                            'No Awards',
+                            style: TextStyle(
+                                color: Colors.green[800],
+                                fontSize: 40,
+                                fontWeight: FontWeight.bold),
+                          )
+                        ]))
+                  ])
+                : CustomScrollView(slivers: <Widget>[
+                    AwardsStream(
+                      docRef: Firestore.instance
+                          .document('users/${globals.firebaseUser.uid}'),
+                      directoryName: 'feed',
+                      shouldLoad: shouldLoad,
+                      refreshParent: () {
+                        setState(() {});
                       },
-                    )
-                  : CircularProgressIndicator()),
+                      isLoading: isLoading,
+                      noAwards: noAwards,
+                    ),
+                  ]),
+            onRefresh: refresh,
+          ),
+        ),
+        Container(
+          child: isLoading.value
+              ? Center(child: CircularProgressIndicator())
+              : null,
+          constraints: BoxConstraints.expand(),
+        )
+      ]),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          //UploadDoc(auth.firebaseUser, Document(name: awardTitle, awards: awards));
+          newAward();
         },
         tooltip: 'Increment',
-        child: Icon(Icons.check),
+        child: Icon(Icons.add),
       ),
     );
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
   }
 
-  /*ListView buildList() {
-    var list = ListView.builder(
-      controller: ScrollController(),
-      itemCount: awards.length,
-      itemBuilder: (BuildContext context, int index) {
-        if (mostRecent) {
-          index = awards.length - index - 1;
-        }
-        return HomeFeed.searchText == null || HomeFeed.searchText == ""
-            ? buildAwardCard(context, awards[index], true)
-            : awards[index].contains(HomeFeed.searchText)
-                ? buildAwardCard(context, awards[index], true)
-                : new Container();
-      },
-    );
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      list.controller.jumpTo(0);
-    });
-
-    return list;
-  }*/
+  newAward() async {
+    bool another = await Navigator.push(
+        context,
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) => AddQuote(
+            document: null,
+          ),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return ScaleTransition(
+                scale: animation.drive(CurveTween(curve: Curves.ease)),
+                alignment: Alignment.center,
+                child: child);
+          },
+        ));
+    if (another) {
+      shouldLoad.value = true;
+    }
+  }
 }

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:pearawards/Collections/CollectionStream.dart';
 import 'package:pearawards/Home/HomeFeed.dart';
 import 'package:pearawards/App/LoginPage.dart';
 
 import 'package:pearawards/Awards/Award.dart';
-import 'package:pearawards/Awards/AwardsStream.dart';
 import 'package:pearawards/Collections/CollectionPage.dart';
 import 'package:pearawards/Home/NotificationsPage.dart';
 import 'package:pearawards/Profile/User.dart';
@@ -35,11 +35,11 @@ class _HomePageState extends State<HomePage> {
   TextEditingController url_controller = TextEditingController();
   TextEditingController search_controller = TextEditingController();
 
-  PageController pageController = PageController();
+  PageController pageController = PageController(initialPage: 1);
 
-  AwardsStream stream;
+  CollectionStream stream;
 
-  int pageIndex = 0;
+  int pageIndex = 1;
 
   @override
   void initState() {
@@ -68,7 +68,7 @@ class _HomePageState extends State<HomePage> {
                         controller: search_controller,
                         onChanged: (text) {
                           setState(() {
-                            AwardsStream.searchText = text;
+                            CollectionStream.searchText = text;
                           });
                         },
                       ),
@@ -114,7 +114,7 @@ class _HomePageState extends State<HomePage> {
                         controller: search_controller,
                         onChanged: (text) {
                           setState(() {
-                            AwardsStream.searchText = text;
+                            CollectionStream.searchText = text;
                           });
                         },
                       ),
@@ -211,7 +211,7 @@ class _HomePageState extends State<HomePage> {
                     onPressed: () {
                       pageIndex = index;
                       setState(() {
-                        stream = AwardsStream(
+                        stream = CollectionStream(
                           url: documents[index].url,
                           title: documents[index].name,
                         );

@@ -1,17 +1,19 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:pearawards/Awards/Award.dart';
+import 'package:pearawards/Awards/AwardsStream.dart';
 import 'package:pearawards/Profile/AddFriend.dart';
 
 import 'package:pearawards/Collections/Collection.dart';
 import 'package:pearawards/Collections/CollectionPage.dart';
 import 'package:pearawards/Utils/Globals.dart' as globals;
 import 'package:pearawards/App/LoginPage.dart';
+import 'package:pearawards/Utils/Utils.dart';
 
 import 'User.dart';
-
-
 
 class ProfilePage extends StatefulWidget {
   ProfilePage(this.user);
@@ -24,35 +26,56 @@ class ProfilePage extends StatefulWidget {
 
 class ProfilePageState extends State<ProfilePage> {
   Map<String, User> friends = Map();
-  List<Collection> collections = [];
-  Key tabKey = Key("tabbar");
+  Map<String, Collection> collections = Map();
+  List<AwardLoader> awards = [];
+  Key tabKey = Key('tabbar');
   int tabIndex = 0;
-  String imageURL = "";
+  String imageURL = '';
+  PrimitiveWrapper loaded = PrimitiveWrapper(0);
+  PrimitiveWrapper shouldLoad = PrimitiveWrapper(false);
+  PrimitiveWrapper isLoading = PrimitiveWrapper(false);
+  PrimitiveWrapper noAwards = PrimitiveWrapper(false);
 
   initState() {
     super.initState();
     loadCollections();
     loadFriends();
     loadData();
+    loadAwards();
   }
 
   Future<void> loadCollections() async {
-    var coll = Firestore.instance
-        .collection('users')
-        .document(widget.user.uid)
-        .collection('collections');
-    collections = await coll.getDocuments().then((colls) {
-      return colls.documents.map((document) {
-        if (globals.loadedCollections[document.documentID] == null) {
-          globals.loadedCollections[document.documentID] = Collection(
-              docRef: document.reference, title: document.data["name"]);
-        }
-        return globals.loadedCollections[document.documentID];
-      }).toList();
+    var coll =
+        Firestore.instance.collection('users/${widget.user.uid}/collections');
+
+    coll.getDocuments().then((colls) {
+      for (DocumentSnapshot document in colls.documents) {
+        loadCollectionFromReference(
+            document.data['reference'], document.reference);
+      }
     });
     if (coll == null) {
       error = true;
     }
+
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  loadCollectionFromReference(
+      DocumentReference collection, DocumentReference reference) async {
+    DocumentSnapshot document = await collection.get();
+    if (!document.exists) {
+      reference.delete();
+      globals.loadedCollections.remove(document.documentID);
+      return;
+    }
+    collections[document.documentID] = Collection(
+        docRef: document.reference,
+        title: document.data['name'],
+        owner: document.data['owner'],
+        lastEdited: document.data['lastEdit']);
     if (mounted) {
       setState(() {});
     }
@@ -60,26 +83,65 @@ class ProfilePageState extends State<ProfilePage> {
 
   Future<void> loadData() async {
     DocumentSnapshot me =
-        await Firestore.instance.document('users/' + widget.user.uid).get();
-    widget.user.imageUrl = me.data["image"];
+        await Firestore.instance.document('users/${widget.user.uid}').get();
+    widget.user.imageUrl = me.data['image'];
     if (mounted) {
       setState(() {});
     }
   }
 
+  Future<void> loadAwards() async {
+    DocumentSnapshot dSnapshot =
+        await Firestore.instance.document('users/${widget.user.uid}').get();
+    if (!dSnapshot.exists) {
+      Navigator.pop(context, true);
+      return;
+    }
+    loaded.value = 0;
+    awards = [];
+    QuerySnapshot snapshot = await Firestore.instance
+        .collection('users/${widget.user.uid}/awards')
+        .getDocuments();
+    awards = snapshot.documents.map((doc) {
+      return AwardLoader(doc.reference, doc.data['reference'], null, loaded);
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
+    List<Collection> orderedCollections = collections.values.toList();
+    orderedCollections.sort((col1, col2) {
+      if (col1.lastEdited == null && col2.lastEdited != null) {
+        return 1;
+      } else if (col1.lastEdited != null && col2.lastEdited == null) {
+        return -1;
+      } else if (col1.lastEdited == null && col2.lastEdited == null) {
+        return 0;
+      }
+      return col2.lastEdited - col1.lastEdited;
+    });
     if (widget.user.imageUrl == null) {
       loadData();
     }
     List<Widget> tabPages = [
-      collections.length != 0
+      AwardsStream(
+        docRef: Firestore.instance.document('users/${widget.user.uid}'),
+        title: widget.user.displayName,
+        shouldLoad: shouldLoad,
+        isLoading: isLoading,
+        noAwards: noAwards,
+      ),
+      orderedCollections.length != 0
           ? SliverGrid(
               delegate: SliverChildBuilderDelegate(
                 (BuildContext context, int index) {
-                  return GridTile(child: CollectionTile(c: collections[index]));
+                  return GridTile(
+                      child: CollectionTile(
+                    c: orderedCollections[index],
+                    onChanged: loadCollections,
+                  ));
                 },
-                childCount: collections.length,
+                childCount: orderedCollections.length,
               ),
               gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
                 maxCrossAxisExtent: 300.0,
@@ -90,14 +152,14 @@ class ProfilePageState extends State<ProfilePage> {
                 children: <Widget>[
                   Spacer(),
                   Text(
-                    "No Collections",
+                    'No Collections',
                     style: TextStyle(
                         color: Colors.green[800],
                         fontSize: 40,
                         fontWeight: FontWeight.bold),
                   ),
                   Text(
-                    "Create one on the Collections screen",
+                    'Create one on the Collections screen',
                     style: TextStyle(
                       color: Colors.green[800],
                       fontSize: 20,
@@ -107,31 +169,10 @@ class ProfilePageState extends State<ProfilePage> {
                 ],
               ),
             ),
-      StreamBuilder(
-          stream: Firestore.instance.collection('users').snapshots(),
-          builder: (context, snapshot) {
-            var data = snapshot.data;
-            List<dynamic> users = [];
-            if (data != null) {
-              users = snapshot.data.documents;
-            }
-            return SliverGrid(
-              gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 300.0,
-              ),
-              delegate:
-                  SliverChildBuilderDelegate((BuildContext context, int index) {
-                return Text(users[index].data["display"] == null
-                    ? "???"
-                    : users[index].data["display"]);
-                // This will build a list of Text widgets with the values from the List<String> that is stored in the streambuilder snapshot
-              }, childCount: users.length),
-            );
-          }),
       friends.length != 0
           ? SliverGrid(
               gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                  maxCrossAxisExtent: 400.0, childAspectRatio: 6.0),
+                  maxCrossAxisExtent: 500.0, childAspectRatio: 6.0),
               delegate:
                   SliverChildBuilderDelegate((BuildContext context, int index) {
                 return friendTab(friends.values.toList()[
@@ -143,14 +184,14 @@ class ProfilePageState extends State<ProfilePage> {
                 children: <Widget>[
                   Spacer(),
                   Text(
-                    "No Friends",
+                    'No Friends',
                     style: TextStyle(
                         color: Colors.green[800],
                         fontSize: 40,
                         fontWeight: FontWeight.bold),
                   ),
                   Text(
-                    "Tap the '+' button to add one!",
+                    'Tap the \'+\' button to add one!',
                     style: TextStyle(
                       color: Colors.green[800],
                       fontSize: 20,
@@ -198,11 +239,11 @@ class ProfilePageState extends State<ProfilePage> {
                         });
                       },
                       tabs: [
+                        Tab(icon: Icon(Icons.view_agenda), text: 'Awards'),
                         Tab(
                             icon: Icon(Icons.collections_bookmark),
-                            text: "Collections"),
-                        Tab(icon: Icon(Icons.view_agenda), text: "Awards"),
-                        Tab(icon: Icon(Icons.people), text: "Friends"),
+                            text: 'Collections'),
+                        Tab(icon: Icon(Icons.people), text: 'Friends'),
                       ],
                     ),
                   ),
@@ -216,29 +257,15 @@ class ProfilePageState extends State<ProfilePage> {
 
   Widget _buildProfileDisplay(Size screenSize) {
     return Container(
-        decoration: BoxDecoration(
-            image: DecorationImage(
-                fit: BoxFit.fitHeight,
-                image: NetworkImage(
-                    "https://cdn.vox-cdn.com/thumbor/Al48-pEnyIn2rlgKX7MIHNmlE68=/0x0:5563x3709/1200x800/filters:focal(2302x1311:3192x2201)/cdn.vox-cdn.com/uploads/chorus_image/image/65752607/1048232144.jpg.0.jpg"))),
-        child: Stack(
-          children: <Widget>[
-            Column(
-              children: <Widget>[
-                _buildProfilePhoto(screenSize),
-                _buildDisplayName()
-              ],
-            ),
-            Container(
-              height: MediaQuery.of(context).size.width * 0.4,
-              child: SettingsButton(),
-            ),
-            Container(
-              height: MediaQuery.of(context).size.width * 0.4,
-              child: NotificationsButton(),
-            )
-          ],
-        ));
+      decoration: BoxDecoration(
+          image: DecorationImage(
+              fit: BoxFit.fitHeight,
+              image: NetworkImage(
+                  'https://cdn.vox-cdn.com/thumbor/Al48-pEnyIn2rlgKX7MIHNmlE68=/0x0:5563x3709/1200x800/filters:focal(2302x1311:3192x2201)/cdn.vox-cdn.com/uploads/chorus_image/image/65752607/1048232144.jpg.0.jpg'))),
+      child: Column(
+        children: <Widget>[_buildProfilePhoto(screenSize), _buildDisplayName()],
+      ),
+    );
   }
 
   Widget _buildDisplayName() {
@@ -281,7 +308,7 @@ class ProfilePageState extends State<ProfilePage> {
         context,
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) => AddFriend(
-            title: "Add Friends",
+            title: 'Add Friends',
           ),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return ScaleTransition(
@@ -299,8 +326,8 @@ class ProfilePageState extends State<ProfilePage> {
 
   Future<void> loadFriends() async {
     DocumentSnapshot me =
-        (await Firestore.instance.document('users/' + widget.user.uid).get());
-    var tempFriends = me.data["friends"];
+        (await Firestore.instance.document('users/${widget.user.uid}').get());
+    var tempFriends = me.data['friends'];
     await Future.wait(List.generate(tempFriends.length, (index) {
       if (friends[tempFriends.keys.elementAt(index)] == null) {
         return addFriend(tempFriends.keys.elementAt(index));
@@ -316,11 +343,11 @@ class ProfilePageState extends State<ProfilePage> {
 
   Future<void> addFriend(String uid) async {
     DocumentSnapshot user =
-        await Firestore.instance.document('users/' + uid).get();
+        await Firestore.instance.document('users/$uid').get();
     if (user.exists) {
       friends[uid] = (User(
-          displayName: user.data["display"],
-          imageUrl: user.data["image"],
+          displayName: user.data['display'],
+          imageUrl: user.data['image'],
           uid: user.documentID));
     }
   }
@@ -331,12 +358,12 @@ class ProfilePageState extends State<ProfilePage> {
         children: <Widget>[
           AppBar(
             backgroundColor: Colors.green,
-            title: Text("Options"),
+            title: Text('Options'),
           ),
           Container(
             child: Row(
               children: <Widget>[
-                Text("Order: "),
+                Text('Order: '),
                 Expanded(
                   child: ChoiceChip(
                     labelStyle: TextStyle(
@@ -366,7 +393,7 @@ class ProfilePageState extends State<ProfilePage> {
             margin: EdgeInsets.all(10.0),
           ),
           RaisedButton(
-            child: Text("Log Out"),
+            child: Text('Log Out'),
             onPressed: () {
               globals.firebaseAuth.signOut();
               Navigator.of(context).pushReplacement(MaterialPageRoute(
@@ -408,9 +435,7 @@ class ProfilePageState extends State<ProfilePage> {
                   child: RichText(
                     text: TextSpan(
                       text: friend.displayName,
-                      style: TextStyle(
-                          fontSize: 20,
-                          color: Colors.black),
+                      style: TextStyle(fontSize: 20, color: Colors.black),
                     ),
                   ),
                 ),
@@ -430,7 +455,7 @@ class ProfilePageState extends State<ProfilePage> {
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) => Scaffold(
               appBar: AppBar(
-                title: Text("Friend"),
+                title: Text('Friend'),
               ),
               body: ProfilePage(friend)),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
@@ -441,44 +466,6 @@ class ProfilePageState extends State<ProfilePage> {
           },
         ));
     refreshAll();
-  }
-}
-
-class SettingsButton extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      child: IconButton(
-        icon: Icon(
-          Icons.settings,
-          color: Colors.white,
-          size: 35,
-        ),
-        onPressed: () {
-          Scaffold.of(context).openEndDrawer();
-        },
-      ),
-      alignment: Alignment(0.9, 0.0),
-    );
-  }
-}
-
-class NotificationsButton extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      child: IconButton(
-        icon: Icon(
-          Icons.notifications,
-          color: Colors.white,
-          size: 35,
-        ),
-        onPressed: () {
-          Scaffold.of(context).openEndDrawer();
-        },
-      ),
-      alignment: Alignment(-0.9, 0.0),
-    );
   }
 }
 

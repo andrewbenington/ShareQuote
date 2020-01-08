@@ -14,13 +14,13 @@ class NotificationsPageState extends State<NotificationsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Notifications"),
+        title: Text('Notifications'),
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: Firestore.instance
-            .collection("users")
+            .collection('users')
             .document(globals.firebaseUser.uid)
-            .collection("notifications")
+            .collection('notifications')
             .snapshots(),
         builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
           if (snapshot.hasError) return new Text('Error: ${snapshot.error}');
@@ -31,12 +31,12 @@ class NotificationsPageState extends State<NotificationsPage> {
               return new ListView(
                   children:
                       snapshot.data.documents.map((DocumentSnapshot document) {
-                if (document["notification"] == 3) {
+                if (document['notification'] == 3) {
                   return ListTile(
-                      title: Text("Friend request from " + document["name"]));
+                      title: Text('Friend request from ${document['name']}'));
                 } else {
                   return ListTile(
-                      title: Text("Notification " + document["notification"]));
+                      title: Text('Notification ${document['notification']}'));
                 }
               }).toList());
           }
