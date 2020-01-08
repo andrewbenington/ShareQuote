@@ -211,7 +211,10 @@ class NewLineFormState extends State<NewLineForm> {
           .document(result.user.uid)
           .setData({"image": imageURL, "display": name, "email": email, "friends": ""});
       Firestore.instance.collection("users").document(result.user.uid).collection("friends");
-      Firestore.instance.collection("users").document(result.user.uid).collection("awards");
+      Firestore.instance.collection("users").document(result.user.uid).collection("created_awards");
+      Firestore.instance.collection("users").document(result.user.uid).collection("tagged_awards");
+      Firestore.instance.collection("users").document(result.user.uid).collection("collections");
+      Firestore.instance.collection("users").document(result.user.uid).collection("created_collections");
       Navigator.of(context).pushReplacement(MaterialPageRoute(
         builder: (context) => HomePage(),
       ));

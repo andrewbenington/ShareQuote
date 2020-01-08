@@ -1,18 +1,19 @@
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:pearawards/Awards/AwardsStream.dart';
-import 'package:pearawards/Utils/Upload.dart';
 import 'Collection.dart';
 import 'package:pearawards/Utils/Globals.dart' as globals;
 
 import 'package:pearawards/Utils/CustomPainters.dart';
 
+import 'CollectionStream.dart';
 import 'NewCollection.dart';
 
 int currentIndex = 0;
 
 String awardTitle = "";
-List<Collection> collections;
 int length;
 
 bool error = false;
@@ -54,35 +55,26 @@ class CollectionPage extends StatefulWidget {
 
 class _CollectionPageState extends State<CollectionPage> {
   TextEditingController name_controller = TextEditingController();
+  bool load = false;
 
   bool mostRecent = true;
   String errorMessage = "";
   @override
   void initState() {
     super.initState();
-      loadCollections(widget.url);
-    
+    loadCollections();
   }
 
-  loadCollections(String url) async {
+  loadCollections() async {
     loading = true;
     var coll = Firestore.instance
-        .collection('users/' + globals.firebaseUser.uid + '/collections');
+        .collection('users/${globals.firebaseUser.uid}/collections');
 
-    collections = await coll.getDocuments().then((colls) {
-      return colls.documents.map((document) {
-        if (globals.loadedCollections[document.documentID] == null) {
-          if (document.data["isPointer"]) {
-            loadFriendCollection(document.reference);
-          } else {
-            globals.loadedCollections[document.documentID] = Collection(
-                docRef: document.reference,
-                title: document.data["name"],
-                owner: document.data["owner"],);
-          }
-        }
-        return globals.loadedCollections[document.documentID];
-      }).toList();
+    coll.getDocuments().then((colls) {
+      for (DocumentSnapshot document in colls.documents) {
+        loadCollectionFromReference(
+            document.data["reference"], document.reference);
+      }
     });
     if (coll == null) {
       error = true;
@@ -94,18 +86,30 @@ class _CollectionPageState extends State<CollectionPage> {
     }
   }
 
-  loadFriendCollection(DocumentReference reference) async {
-    DocumentSnapshot document = await reference.get();
+  loadCollectionFromReference(
+      DocumentReference collection, DocumentReference reference) async {
+    DocumentSnapshot document = await collection.get();
+    if (!document.exists) {
+      reference.delete();
+      globals.loadedCollections.remove(document.documentID);
+      return;
+    }
     globals.loadedCollections[document.documentID] = Collection(
         docRef: document.reference,
-        title: document.data["name"],
-        owner: document.data["owner"]);
+        title: document.data["name"] == null ? "" : document.data["name"],
+        owner: document.data["owner"],
+        lastEdited: document.data["lastEdit"] == null
+            ? DateTime.now().microsecondsSinceEpoch
+            : document.data["lastEdit"]);
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (collections == null && !loading && !error) {
-      loadCollections(widget.url);
+    if (load || (globals.loadedCollections == null && !loading && !error)) {
+      loadCollections();
     }
     return Scaffold(
       backgroundColor: Colors.green[200],
@@ -119,12 +123,12 @@ class _CollectionPageState extends State<CollectionPage> {
                   RaisedButton(
                     child: Text("Try again"),
                     onPressed: () {
-                      loadCollections(widget.url);
+                      loadCollections();
                     },
                   ),
                   Spacer()
                 ])
-              : collections != null && loading == false
+              : globals.loadedCollections != null && loading == false
                   ? RefreshIndicator(
                       backgroundColor: Colors.white,
                       // backgroundColor: _user == null
@@ -132,7 +136,7 @@ class _CollectionPageState extends State<CollectionPage> {
                       //     : colorFromID(_user.id),
                       child: buildGrid(),
                       onRefresh: () async {
-                        loadCollections(widget.url);
+                        loadCollections();
                         return;
                       },
                     )
@@ -142,19 +146,30 @@ class _CollectionPageState extends State<CollectionPage> {
 
   Widget buildGrid() {
     return GridView.builder(
-      itemCount: collections.length + 1,
+      itemCount: globals.loadedCollections.length + 1,
       itemBuilder: (BuildContext context, int index) {
-        return index == collections.length
+        List<Collection> sortedCollections =
+            globals.loadedCollections.values.toList();
+        sortedCollections.sort((col1, col2) {
+          return col2.lastEdited - col1.lastEdited;
+        });
+        return index == globals.loadedCollections.length
             ? GridTile(child: buildNewCollectionButton())
-            : GridTile(child: CollectionTile(c: collections[index]));
+            : GridTile(
+                child: CollectionTile(
+                    c: sortedCollections[index],
+                    onChanged: () {
+                      loadCollections();
+                    }));
       },
       gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 200.0,
+        maxCrossAxisExtent: 300.0,
       ),
     );
   }
 
   Widget buildNewCollectionButton() {
+    name_controller.clear();
     return Padding(
         padding: EdgeInsets.all(60),
         child: FlatButton(
@@ -166,64 +181,73 @@ class _CollectionPageState extends State<CollectionPage> {
           ),
           color: HSLColor.fromAHSL(0.6, 0, 0, 1).toColor(),
           onPressed: () {
-            showDialog(
-                context: context,
-                builder: (context) {
-                  return AlertDialog(
-                    title: Text('Add new collection'),
-                    content: Container(
-                      height: MediaQuery.of(context).size.height * 0.13,
-                      child: Column(
-                        children: <TextField>[
-                          TextField(
-                            controller: name_controller,
-                            decoration:
-                                InputDecoration(hintText: "Collection name"),
-                          ),
-                        ],
-                      ),
-                    ),
-                    actions: <Widget>[
-                      new FlatButton(
-                        child: new Text('CANCEL'),
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                        },
-                      ),
-                      new FlatButton(
-                        child: new Text('ADD'),
-                        onPressed: () {
-                          createCollection(
-                              globals.firebaseUser, name_controller.text);
-                          setState(() {});
-                          Navigator.of(context).pop();
-                        },
-                      )
-                    ],
-                  );
-                });
+            showCollectionDialog();
           },
         ));
+  }
+
+  void showCollectionDialog() async {
+    showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: Text('Add new collection'),
+            content: Container(
+              height: MediaQuery.of(context).size.height * 0.13,
+              child: Column(
+                children: <TextField>[
+                  TextField(
+                    controller: name_controller,
+                    decoration: InputDecoration(hintText: "Collection name"),
+                  ),
+                ],
+              ),
+            ),
+            actions: <Widget>[
+              new FlatButton(
+                child: new Text('CANCEL'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+              new FlatButton(
+                child: new Text('ADD'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  createAndUpdate(globals.firebaseUser, name_controller.text);
+                },
+              )
+            ],
+          );
+        });
+  }
+
+  createAndUpdate(FirebaseUser user, String title) async {
+    print(await createCollection(user, title));
+    load = true;
+
+    loadCollections();
   }
 }
 
 class CollectionTile extends StatelessWidget {
-  CollectionTile({this.c});
+  CollectionTile({this.c, this.onChanged});
   Collection c;
+  Function onChanged;
   String label = "";
 
   @override
   Widget build(BuildContext context) {
+    if (c == null) {
+      int i = 0;
+    }
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
       child: CustomPaint(
         painter: CornersPainter(),
         child: FlatButton(
           onPressed: () {
-            Navigator.push(
-              context,
-              growRoute(c),
-            );
+            pushCollectionStream(context, c, onChanged);
           },
           child: Text(
             c.title,
@@ -234,11 +258,33 @@ class CollectionTile extends StatelessWidget {
       margin: EdgeInsets.all(10),
     );
   }
+
+  pushCollectionStream(
+      BuildContext context, Collection c, Function onChanged) async {
+    if (await Navigator.push(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            CollectionStream(
+          collectionInfo: c,
+          title: c.title,
+        ),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return ScaleTransition(
+              scale: animation.drive(CurveTween(curve: Curves.ease)),
+              alignment: Alignment.center,
+              child: child);
+        },
+      ),
+    )) {
+      onChanged();
+    }
+  }
 }
 
 Route growRoute(Collection c) {
   return PageRouteBuilder(
-    pageBuilder: (context, animation, secondaryAnimation) => AwardsStream(
+    pageBuilder: (context, animation, secondaryAnimation) => CollectionStream(
       collectionInfo: c,
       title: c.title,
     ),

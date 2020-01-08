@@ -1,9 +1,14 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:pearawards/Awards/TagUser.dart';
+import 'package:pearawards/Profile/ProfilePage.dart';
+import 'package:pearawards/Profile/User.dart';
+import 'package:pearawards/Utils/Converter.dart';
 import 'package:pearawards/Utils/DisplayTools.dart';
-//import 'package:string_similarity/string_similarity.dart';
-import 'dart:math';
+import 'package:pearawards/Utils/Globals.dart' as globals;
+import 'package:pearawards/Utils/Utils.dart';
 
 import 'AwardPage.dart';
 import 'package:pearawards/Utils/CustomPainters.dart';
@@ -15,6 +20,42 @@ class Document {
   final String url;
   final String name;
   List<Award> awards;
+}
+
+class AwardLoader {
+  AwardLoader(this.pointer, this.reference, this.award, this.loaded) {
+    if (award != null) {
+      isLoaded = true;
+    }
+  }
+  final DocumentReference pointer;
+  final DocumentReference reference;
+  final PrimitiveWrapper loaded;
+  Award award;
+  bool isLoaded = false;
+
+  Future<void> loadAward() async {
+    await reference.get().then((doc) {
+      if (doc.exists) {
+        award = Award.fromJson(jsonDecode(doc.data['json']));
+        award.likes = doc.data['likes'];
+        award.timestamp = doc.data['timestamp'];
+        award.docPath = doc.reference.path;
+        isLoaded = true;
+        loaded.value++;
+      } else {
+        pointer.delete();
+      }
+    });
+  }
+
+  Widget buildCard(BuildContext context, bool tappable) {
+    if (!isLoaded ||
+        !award.excludesPattern('poo|fuck|Jesus|God|dick|shit|fleshlight')) {
+      return Container();
+    }
+    return buildAwardCard(context, award, tappable);
+  }
 }
 
 Widget buildAwardCard(BuildContext context, Award award, bool tappable) {
@@ -36,8 +77,8 @@ Widget buildAwardCard(BuildContext context, Award award, bool tappable) {
                         award: award,
                         title: award.author.name +
                             (award.showYear
-                                ? ""
-                                : " " + formatDateTimeAward(time))),
+                                ? ''
+                                : ' ${formatDateTimeAward(time)}')),
                   ),
                 );
               }
@@ -57,20 +98,21 @@ class Award extends StatelessWidget {
       this.author,
       this.fromDoc = false,
       this.showYear = false,
-      this.nsfw = false}) {
+      this.nsfw = false,
+      this.docPath}) {
     for (Line l in quotes) {
       hash ^= l.getHash();
     }
   }
   factory Award.fromJson(Map<String, dynamic> jsonMap) {
-    List q = jsonMap["lines"];
+    List q = jsonMap['lines'];
     if (q.length == 0) {
       return null;
     }
     return Award(
-      fromDoc: jsonMap["fromdoc"],
-      showYear: jsonMap["showYear"],
-      timestamp: jsonMap["timestamp"],
+      fromDoc: jsonMap['fromdoc'],
+      showYear: jsonMap['showYear'],
+      timestamp: jsonMap['timestamp'],
       quotes: q
           .map(
             (quote) => Line.fromJson(
@@ -78,11 +120,12 @@ class Award extends StatelessWidget {
             ),
           )
           .toList(),
-      numQuotes: jsonMap["lines"].length,
+      numQuotes: jsonMap['lines'].length,
       author: Name.fromJson(
-        jsonMap["author"],
+        jsonMap['author'],
       ),
-      nsfw: jsonMap["nsfw"],
+      nsfw: jsonMap['nsfw'],
+      docPath: jsonMap['docPath'],
     );
   }
 
@@ -93,7 +136,7 @@ class Award extends StatelessWidget {
   final bool fromDoc;
   bool nsfw;
   bool showYear;
-  DocumentReference docRef;
+  String docPath;
   int likes = 0;
   int hash = 0;
 
@@ -159,8 +202,8 @@ class Award extends StatelessWidget {
                           child: RichText(
                             text: TextSpan(
                               text: author == null
-                                  ? ""
-                                  : fromDoc ? "Google Doc" : author.name,
+                                  ? ''
+                                  : fromDoc ? 'Google Doc' : author.name,
                               style: TextStyle(
                                   fontSize: 17.0,
                                   color: fromDoc
@@ -196,7 +239,7 @@ class Award extends StatelessWidget {
         Column(
           children: quotes,
         ),
-        Text(likes == 0 ? "like" : likes.toString())
+        Text(likes == 0 ? 'like' : likes.toString())
       ],
     ));
   }
@@ -206,7 +249,7 @@ abstract class Line extends StatelessWidget {
   Line(String m) : message = m;
   final String message;
   factory Line.fromJson(Map<String, dynamic> jsonMap) {
-    if (jsonMap["name"] == null) {
+    if (jsonMap['name'] == null) {
       return Context.fromJson(jsonMap);
     } else {
       return Quote.fromJson(jsonMap);
@@ -224,8 +267,8 @@ class Quote extends Line {
 
   factory Quote.fromJson(Map<String, dynamic> jsonMap) {
     return Quote(
-      message: jsonMap["quote"],
-      name: Name.fromJson(jsonMap["name"]),
+      message: jsonMap['quote'],
+      name: Name.fromJson(jsonMap['name']),
     );
   }
   final String message;
@@ -237,7 +280,7 @@ class Quote extends Line {
 
   int getHash() {
     return name != null
-        ? message.hashCode ^ name.name.hashCode
+        ? message.hashCode * 1000000000 + name.name.hashCode
         : message.hashCode;
   }
 
@@ -249,7 +292,7 @@ class Quote extends Line {
           child: Container(
             child: RichText(
               text: TextSpan(
-                text: "\"" + message + "\"",
+                text: '\"$message\"',
                 style: TextStyle(
                   fontSize: 20.0,
                   color: Colors.black,
@@ -270,7 +313,7 @@ class Context extends Line {
 
   factory Context.fromJson(Map<String, dynamic> jsonMap) {
     return Context(
-      message: jsonMap["context"],
+      message: jsonMap['context'],
     );
   }
   final String message;
@@ -291,7 +334,7 @@ class Context extends Line {
           child: Container(
             child: RichText(
               text: TextSpan(
-                text: "*" + message + "*",
+                text: '*$message*',
                 style: TextStyle(
                   fontSize: 18.0,
                   color: Colors.black54,
@@ -312,43 +355,82 @@ class Name extends StatelessWidget {
 
   factory Name.fromJson(Map<String, dynamic> jsonMap) {
     return Name(
-      name: jsonMap["name"],
+      name: jsonMap['name'],
+      uid: jsonMap['uid'],
     );
   }
-  final String name;
-  final String uid;
+  String name;
+  String uid;
+
+  tagUser(BuildContext context) async {
+    Award a = context.findAncestorWidgetOfExactType<Award>();
+    uid = await Navigator.push(
+        context,
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) => TagUser(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return ScaleTransition(
+                scale: animation.drive(CurveTween(curve: Curves.ease)),
+                alignment: Alignment.center,
+                child: child);
+          },
+        ));
+    if (uid != null) {
+      Firestore.instance
+          .document(a.docPath)
+          .updateData({'json': jsonEncode(awardToJson(a))});
+      Firestore.instance
+          .collection('users/$uid/awards')
+          .document(a.hash.toString())
+          .setData({
+        'timestamp': a.timestamp,
+        'reference': Firestore.instance.document(
+            'users/${a.author.uid}/created_awards/${a.hash.toString()}')
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Align(
       child: FlatButton(
-          child: Container(
-            child: RichText(
-              text: TextSpan(
-                text: "- " + name,
-                style: TextStyle(
-                  fontSize: 16.0,
-                  color: uid == null ? Colors.black87 : Colors.green[700],
-                ),
+        child: Container(
+          child: RichText(
+            text: TextSpan(
+              text: '- $name',
+              style: TextStyle(
+                fontSize: 16.0,
+                fontWeight: uid == null ? FontWeight.normal : FontWeight.bold,
+                color: uid == null ? Colors.black87 : Colors.black,
               ),
             ),
-            margin: EdgeInsets.only(bottom: 8.0),
           ),
-          onPressed: () {
-            Navigator.push(
-                context,
-                PageRouteBuilder(
-                  pageBuilder: (context, animation, secondaryAnimation) =>
-                      TagUser(),
-                  transitionsBuilder:
-                      (context, animation, secondaryAnimation, child) {
-                    return ScaleTransition(
-                        scale: animation.drive(CurveTween(curve: Curves.ease)),
-                        alignment: Alignment.center,
-                        child: child);
-                  },
-                ));
-          }),
+          margin: EdgeInsets.only(bottom: 8.0),
+        ),
+        onPressed: uid == null
+            ? () {
+                tagUser(context);
+              }
+            : () {
+                Navigator.push(
+                    context,
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation, secondaryAnimation) =>
+                          Scaffold(
+                              appBar: AppBar(),
+                              body: ProfilePage(
+                                  User(displayName: name, uid: uid))),
+                      transitionsBuilder:
+                          (context, animation, secondaryAnimation, child) {
+                        return ScaleTransition(
+                            scale:
+                                animation.drive(CurveTween(curve: Curves.ease)),
+                            alignment: Alignment.center,
+                            child: child);
+                      },
+                    ));
+              },
+      ),
       alignment: Alignment.centerRight,
     );
   }

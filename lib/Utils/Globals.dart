@@ -18,7 +18,7 @@ loadUser(String uid) async {
   }
   loadedUsers[uid] = null;
   DocumentSnapshot userSnapshot =
-      (await Firestore.instance.document('users/' + uid).get());
+      (await Firestore.instance.document('users/$uid').get());
   loadedUsers[uid] = User(
       displayName: userSnapshot.data["display"],
       uid: uid,
