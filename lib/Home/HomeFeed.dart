@@ -6,13 +6,8 @@ import 'dart:isolate';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pearawards/Awards/AddQuote.dart';
 import 'package:pearawards/Awards/AwardsStream.dart';
-import 'package:pearawards/Collections/Collection.dart';
-import 'package:pearawards/Profile/User.dart';
 import 'package:flutter/material.dart';
-import 'package:pearawards/Awards/AwardPage.dart';
 import 'package:pearawards/Utils/Converter.dart';
-import 'package:pearawards/Utils/Globals.dart' as globals;
-import 'package:pearawards/Awards/Award.dart';
 import 'package:pearawards/Utils/Globals.dart' as globals;
 import 'package:pearawards/Utils/Utils.dart';
 

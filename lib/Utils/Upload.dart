@@ -6,13 +6,16 @@ import 'package:pearawards/Utils/Converter.dart';
 
 import 'package:pearawards/Awards/Award.dart';
 
-Future<int> uploadNewAward(String uploadPath, Award award,
+Future<void> uploadNewAward(String uploadPath, Award award,
     DocumentReference collection, bool newTime) {
   if (collection != null) {
     collection.updateData({"lastEdit": DateTime.now().microsecondsSinceEpoch});
   }
 
-  return uploadAward(uploadPath, award, collection, !newTime);
+  uploadAward(uploadPath, award, collection, !newTime);
+  collection.setData({
+    "awardEdits": {award.hash.toString(): DateTime.now().microsecondsSinceEpoch}
+  }, merge: true);
 }
 
 Future<int> uploadDoc(
@@ -33,9 +36,16 @@ Future<int> uploadDoc(
       if (code != 0) {
         return code;
       }
+      collection.setData({
+        "googledoc": url,
+        "awardEdits": {a.hash.toString(): DateTime.now().microsecondsSinceEpoch}
+      }, merge: true);
     }
-    collection.updateData(
-        {"googledoc": url, "lastEdit": DateTime.now().microsecondsSinceEpoch});
+    int time = DateTime.now().microsecondsSinceEpoch;
+    collection.setData(
+        Map.fromIterable(result.awards,
+            key: (a) => a.award.hash.toString(), value: (a) => time),
+        merge: true);
     return 0;
   });
 }

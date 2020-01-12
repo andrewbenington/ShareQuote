@@ -23,30 +23,60 @@ class Document {
 }
 
 class AwardLoader {
-  AwardLoader(this.pointer, this.reference, this.award, this.loaded) {
+  AwardLoader(
+      {this.pointer,
+      this.snap,
+      this.reference,
+      this.award,
+      this.numLoaded,
+      this.lastEdit,
+      this.refresh}) {
     if (award != null) {
       isLoaded = true;
+      award.refresh = refresh;
+    } else if (snap != null) {
+      awardFromSnapshot(snap);
+      isLoaded = true;
+      award.refresh = refresh;
+    } else if (globals.loadedAwards[reference.documentID] != null &&
+        globals.loadedAwards[reference.documentID].lastLoaded > lastEdit) {
+      award = globals.loadedAwards[reference.documentID];
+      isLoaded = true;
+      award.refresh = refresh;
     }
   }
   final DocumentReference pointer;
+  final DocumentSnapshot snap;
   final DocumentReference reference;
-  final PrimitiveWrapper loaded;
+  final PrimitiveWrapper numLoaded;
+  final Function refresh;
+  final int lastEdit;
   Award award;
   bool isLoaded = false;
 
   Future<void> loadAward() async {
     await reference.get().then((doc) {
-      if (doc.exists) {
-        award = Award.fromJson(jsonDecode(doc.data['json']));
-        award.likes = doc.data['likes'];
-        award.timestamp = doc.data['timestamp'];
-        award.docPath = doc.reference.path;
-        isLoaded = true;
-        loaded.value++;
-      } else {
+      if (!awardFromSnapshot(doc)) {
         pointer.delete();
       }
+      isLoaded = true;
+      numLoaded.value++;
     });
+  }
+
+  bool awardFromSnapshot(DocumentSnapshot doc) {
+    if (doc.exists) {
+      award = Award.fromJson(jsonDecode(doc.data['json']));
+      award.likes = doc.data['likes'];
+      award.refresh = refresh;
+      award.timestamp = doc.data['timestamp'];
+      award.docPath = doc.reference.path;
+      award.lastLoaded = DateTime.now().microsecondsSinceEpoch;
+      globals.loadedAwards[award.hash.toString()] = award;
+      return true;
+    } else {
+      return false;
+    }
   }
 
   Widget buildCard(BuildContext context, bool tappable) {
@@ -139,6 +169,8 @@ class Award extends StatelessWidget {
   String docPath;
   int likes = 0;
   int hash = 0;
+  int lastLoaded = 0;
+  Function refresh;
 
   bool contains(String filter) {
     for (Line l in quotes) {
@@ -387,6 +419,9 @@ class Name extends StatelessWidget {
         'reference': Firestore.instance.document(
             'users/${a.author.uid}/created_awards/${a.hash.toString()}')
       });
+    }
+    if (a.refresh != null) {
+      a.refresh();
     }
   }
 

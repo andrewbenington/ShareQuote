@@ -1,6 +1,8 @@
 import 'dart:ui';
 
+import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'dart:ui' as ui;
 
 var days = <String>[
   'Sunday',
@@ -110,4 +112,30 @@ int intFromString(String s) {
     result += (units[i] - 50) % 150;
   }
   return result;
+}
+
+class ShadowText extends StatelessWidget {
+  ShadowText({this.text, this.offset, this.style});
+  final String text;
+  final double offset;
+  final TextStyle style;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(children: [
+      Positioned(
+          top: 4.0,
+          left: 4.0,
+          child: BackdropFilter(
+              filter: ui.ImageFilter.blur(sigmaX: 2.0, sigmaY: 2.0),
+              child: Text(text,
+                  style: style != null
+                      ? TextStyle(
+                          fontSize: style.fontSize,
+                          fontWeight: style.fontWeight,
+                          color: Colors.black.withOpacity(0.5))
+                      : null))),
+      Text(text, style: style)
+    ]);
+  }
 }

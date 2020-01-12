@@ -9,6 +9,7 @@ import 'package:pearawards/Profile/AddFriend.dart';
 
 import 'package:pearawards/Collections/Collection.dart';
 import 'package:pearawards/Collections/CollectionPage.dart';
+import 'package:pearawards/Utils/DisplayTools.dart';
 import 'package:pearawards/Utils/Globals.dart' as globals;
 import 'package:pearawards/App/LoginPage.dart';
 import 'package:pearawards/Utils/Utils.dart';
@@ -35,13 +36,14 @@ class ProfilePageState extends State<ProfilePage> {
   PrimitiveWrapper shouldLoad = PrimitiveWrapper(false);
   PrimitiveWrapper isLoading = PrimitiveWrapper(false);
   PrimitiveWrapper noAwards = PrimitiveWrapper(false);
+  PrimitiveWrapper numAwards = PrimitiveWrapper(0);
+  List<Widget> tabPages;
 
   initState() {
     super.initState();
     loadCollections();
     loadFriends();
     loadData();
-    loadAwards();
   }
 
   Future<void> loadCollections() async {
@@ -90,23 +92,6 @@ class ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  Future<void> loadAwards() async {
-    DocumentSnapshot dSnapshot =
-        await Firestore.instance.document('users/${widget.user.uid}').get();
-    if (!dSnapshot.exists) {
-      Navigator.pop(context, true);
-      return;
-    }
-    loaded.value = 0;
-    awards = [];
-    QuerySnapshot snapshot = await Firestore.instance
-        .collection('users/${widget.user.uid}/awards')
-        .getDocuments();
-    awards = snapshot.documents.map((doc) {
-      return AwardLoader(doc.reference, doc.data['reference'], null, loaded);
-    }).toList();
-  }
-
   @override
   Widget build(BuildContext context) {
     List<Collection> orderedCollections = collections.values.toList();
@@ -123,13 +108,31 @@ class ProfilePageState extends State<ProfilePage> {
     if (widget.user.imageUrl == null) {
       loadData();
     }
-    List<Widget> tabPages = [
+    tabPages = [
       AwardsStream(
         docRef: Firestore.instance.document('users/${widget.user.uid}'),
         title: widget.user.displayName,
         shouldLoad: shouldLoad,
         isLoading: isLoading,
         noAwards: noAwards,
+        numAwards: numAwards,
+        refreshParent: () {
+          setState(() {});
+          rebuildAllChildren(context);
+        },
+      ),
+      AwardsStream(
+        docRef: Firestore.instance.document('users/${widget.user.uid}'),
+        title: widget.user.displayName,
+        shouldLoad: shouldLoad,
+        isLoading: isLoading,
+        noAwards: noAwards,
+        directoryName: 'created_awards',
+        directReferences: true,
+        refreshParent: () {
+          setState(() {});
+          rebuildAllChildren(context);
+        },
       ),
       orderedCollections.length != 0
           ? SliverGrid(
@@ -169,38 +172,6 @@ class ProfilePageState extends State<ProfilePage> {
                 ],
               ),
             ),
-      friends.length != 0
-          ? SliverGrid(
-              gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                  maxCrossAxisExtent: 500.0, childAspectRatio: 6.0),
-              delegate:
-                  SliverChildBuilderDelegate((BuildContext context, int index) {
-                return friendTab(friends.values.toList()[
-                    index]); // This will build a list of Text widgets with the values from the List<String> that is stored in the streambuilder snapshot
-              }, childCount: friends.length == 0 ? 1 : friends.length),
-            )
-          : SliverFillRemaining(
-              child: Column(
-                children: <Widget>[
-                  Spacer(),
-                  Text(
-                    'No Friends',
-                    style: TextStyle(
-                        color: Colors.green[800],
-                        fontSize: 40,
-                        fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    'Tap the \'+\' button to add one!',
-                    style: TextStyle(
-                      color: Colors.green[800],
-                      fontSize: 20,
-                    ),
-                  ),
-                  Spacer()
-                ],
-              ),
-            )
     ];
     Size screenSize = MediaQuery.of(context).size;
 
@@ -221,7 +192,7 @@ class ProfilePageState extends State<ProfilePage> {
           },
           child: DefaultTabController(
             key: tabKey,
-            length: 3,
+            length: tabPages.length,
             child: CustomScrollView(
               slivers: <Widget>[
                 SliverList(
@@ -233,17 +204,25 @@ class ProfilePageState extends State<ProfilePage> {
                   floating: true,
                   delegate: SliverTabBarDelegate(
                     TabBar(
+                      labelPadding: EdgeInsets.symmetric(vertical: 10.0),
                       onTap: (index) {
+                        shouldLoad.value = true;
+                        rebuildAllChildren(context);
                         setState(() {
                           tabIndex = index;
                         });
                       },
                       tabs: [
-                        Tab(icon: Icon(Icons.view_agenda), text: 'Awards'),
+                        Tab(
+                            icon: Icon(Icons.bookmark),
+                            text: 'Received Awards'),
+                        Tab(
+                            icon: Icon(Icons.loyalty),
+                            child: Text('Given Awards')),
                         Tab(
                             icon: Icon(Icons.collections_bookmark),
                             text: 'Collections'),
-                        Tab(icon: Icon(Icons.people), text: 'Friends'),
+                        //Tab(icon: Icon(Icons.people), text: 'Friends'),
                       ],
                     ),
                   ),
@@ -257,26 +236,59 @@ class ProfilePageState extends State<ProfilePage> {
 
   Widget _buildProfileDisplay(Size screenSize) {
     return Container(
-      decoration: BoxDecoration(
-          image: DecorationImage(
-              fit: BoxFit.fitHeight,
-              image: NetworkImage(
-                  'https://cdn.vox-cdn.com/thumbor/Al48-pEnyIn2rlgKX7MIHNmlE68=/0x0:5563x3709/1200x800/filters:focal(2302x1311:3192x2201)/cdn.vox-cdn.com/uploads/chorus_image/image/65752607/1048232144.jpg.0.jpg'))),
-      child: Column(
-        children: <Widget>[_buildProfilePhoto(screenSize), _buildDisplayName()],
-      ),
-    );
+        decoration: BoxDecoration(
+            image: DecorationImage(
+                fit: BoxFit.cover,
+                image: NetworkImage(
+                    'https://cdn.vox-cdn.com/thumbor/Al48-pEnyIn2rlgKX7MIHNmlE68=/0x0:5563x3709/1200x800/filters:focal(2302x1311:3192x2201)/cdn.vox-cdn.com/uploads/chorus_image/image/65752607/1048232144.jpg.0.jpg'))),
+        child: Column(
+          children: <Widget>[
+            _buildProfilePhoto(screenSize),
+            _buildDisplayName(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                FlatButton(
+                  onPressed: toFriendList,
+                  child: ShadowText(
+                    text:
+                        "${friends.length} Friend${friends.length == 1 ? "" : "s"}",
+                    offset: 4.0,
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16.0),
+                  ),
+                ),
+                Container(
+                  width: MediaQuery.of(context).size.width * 0.15,
+                ),
+                ShadowText(
+                  text:
+                      "${numAwards.value} Award${numAwards.value == 1 ? "" : "s"}",
+                  offset: 4.0,
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16.0),
+                )
+              ],
+            )
+          ],
+        ),
+        padding: EdgeInsets.only(bottom: 10.0));
   }
 
   Widget _buildDisplayName() {
     return Container(
         alignment: Alignment.center,
-        margin: EdgeInsets.symmetric(vertical: 20.0),
-        child: Text(widget.user.displayName,
-            style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: Colors.white)));
+        margin: EdgeInsets.only(bottom: 5.0),
+        child: ShadowText(
+          text: widget.user.displayName,
+          offset: 4.0,
+          style: TextStyle(
+              fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white),
+        ));
   }
 
   Widget _buildProfilePhoto(Size screenSize) {
@@ -284,18 +296,24 @@ class ProfilePageState extends State<ProfilePage> {
       child: Container(
         height: screenSize.width * 0.4,
         width: screenSize.width * 0.4,
-        margin: EdgeInsets.only(top: 50, bottom: 10),
+        margin: EdgeInsets.only(top: 30, bottom: 10),
         decoration: widget.user.imageUrl == null
             ? BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(width: 5.0, color: Colors.white),
-              )
+                boxShadow: [BoxShadow()])
             : BoxDecoration(
+                boxShadow: [
+                  BoxShadow(
+                      offset: Offset(4.0, 4.0),
+                      color: Colors.black.withOpacity(0.5))
+                ],
                 shape: BoxShape.circle,
                 image: DecorationImage(
                   fit: BoxFit.cover,
                   image: NetworkImage(widget.user.imageUrl),
                 ),
+                color: Colors.white,
                 border: Border.all(width: 5.0, color: Colors.white),
               ),
       ),
@@ -321,6 +339,9 @@ class ProfilePageState extends State<ProfilePage> {
 
   refreshAll() async {
     await Future.wait([loadFriends(), loadCollections(), loadData()]);
+    isLoading.value = false;
+    shouldLoad.value = true;
+    rebuildAllChildren(context);
     setState(() {});
   }
 
@@ -458,6 +479,55 @@ class ProfilePageState extends State<ProfilePage> {
                 title: Text('Friend'),
               ),
               body: ProfilePage(friend)),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return ScaleTransition(
+                scale: animation.drive(CurveTween(curve: Curves.ease)),
+                alignment: Alignment.center,
+                child: child);
+          },
+        ));
+    refreshAll();
+  }
+
+  toFriendList() async {
+    await Navigator.push(
+        context,
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) => Scaffold(
+            backgroundColor: Colors.green[200],
+            appBar: AppBar(
+              title: Text('Friends'),
+            ),
+            body: friends.length != 0
+                ? GridView(
+                    gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                        maxCrossAxisExtent: 500.0, childAspectRatio: 6.0),
+                    children: List.generate(friends.length, (index) {
+                      return friendTab(friends.values.toList()[index]);
+                    }))
+                : SliverFillRemaining(
+                    child: Column(
+                      children: <Widget>[
+                        Spacer(),
+                        Text(
+                          'No Friends',
+                          style: TextStyle(
+                              color: Colors.green[800],
+                              fontSize: 40,
+                              fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          'Tap the \'+\' button to add one!',
+                          style: TextStyle(
+                            color: Colors.green[800],
+                            fontSize: 20,
+                          ),
+                        ),
+                        Spacer()
+                      ],
+                    ),
+                  ),
+          ),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return ScaleTransition(
                 scale: animation.drive(CurveTween(curve: Curves.ease)),

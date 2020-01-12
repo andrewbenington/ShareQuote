@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:pearawards/Profile/User.dart';
 import 'package:pearawards/Utils/Globals.dart' as globals;
 
+import 'AwardsStream.dart';
+
 Map friends;
 Map sentRequests;
 
@@ -36,6 +38,7 @@ class _TagUserState extends State<TagUser> {
             icon: Icon(Icons.check, size: 30),
             onPressed: () {
               Navigator.pop(context, users[selectedIndex].documentID);
+              
             },
           ),
         ],
