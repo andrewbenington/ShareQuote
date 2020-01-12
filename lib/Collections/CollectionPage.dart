@@ -9,7 +9,7 @@ import 'package:pearawards/Utils/Globals.dart' as globals;
 import 'package:pearawards/Utils/CustomPainters.dart';
 
 import 'CollectionStream.dart';
-import 'NewCollection.dart';
+import 'package:pearawards/Collections/CollectionFunctions.dart';
 
 int currentIndex = 0;
 
@@ -86,25 +86,7 @@ class _CollectionPageState extends State<CollectionPage> {
     }
   }
 
-  loadCollectionFromReference(
-      DocumentReference collection, DocumentReference reference) async {
-    DocumentSnapshot document = await collection.get();
-    if (!document.exists) {
-      reference.delete();
-      globals.loadedCollections.remove(document.documentID);
-      return;
-    }
-    globals.loadedCollections[document.documentID] = Collection(
-        docRef: document.reference,
-        title: document.data["name"] == null ? "" : document.data["name"],
-        owner: document.data["owner"],
-        lastEdited: document.data["lastEdit"] == null
-            ? DateTime.now().microsecondsSinceEpoch
-            : document.data["lastEdit"]);
-    if (mounted) {
-      setState(() {});
-    }
-  }
+  
 
   @override
   Widget build(BuildContext context) {

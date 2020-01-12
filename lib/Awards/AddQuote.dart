@@ -47,27 +47,29 @@ class _AddQuoteState extends State<AddQuote> {
                     }
                   }
                   if (quotes.length > 0) {
+                    Award a = Award(
+                        quotes: quotes,
+                        timestamp: DateTime.now().microsecondsSinceEpoch,
+                        author: Name(
+                          uid: globals.firebaseUser.uid,
+                          name: globals.firebaseUser.displayName,
+                        ));
                     uploadNewAward(
                         'users/${globals.firebaseUser.uid}/created_awards',
-                        Award(
-                            quotes: quotes,
-                            timestamp: DateTime.now().microsecondsSinceEpoch,
-                            author: Name(
-                              uid: globals.firebaseUser.uid,
-                              name: globals.firebaseUser.displayName,
-                            )),
+                        a,
                         widget.document,
                         true);
-                    Navigator.pop(context, true);
+                    globals.loadedAwards[a.hash.toString()] = a;
+                    Navigator.pop(context, a);
                   } else {
-                    Navigator.pop(context, false);
+                    Navigator.pop(context, null);
                   }
                 }),
           ],
           leading: IconButton(
             icon: Icon(Icons.close, size: 30),
             onPressed: () {
-              Navigator.pop(context, false);
+              Navigator.pop(context, null);
             },
           ),
           title: Text("Add Award"),

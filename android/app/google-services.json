@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "892769499021",
+    "firebase_url": "https://sharequote-cb4b9.firebaseio.com",
+    "project_id": "sharequote-cb4b9",
+    "storage_bucket": "sharequote-cb4b9.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:892769499021:android:cd93b316d9c34b85efefc4",
+        "android_client_info": {
+          "package_name": "com.example.pearawards"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "892769499021-4q0mihu924ipftppg842jfasjuflnp6m.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDrDEOcIETTW1qOFRU9Djq9C1zn-16L2Aw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "892769499021-4q0mihu924ipftppg842jfasjuflnp6m.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "892769499021-u8eh3ngq9p3fs6aa3coo2g796skvb1k6.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.pearawards"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

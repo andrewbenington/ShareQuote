@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:pearawards/Awards/AddQuote.dart';
 import 'package:pearawards/Awards/Award.dart';
 import 'package:pearawards/Awards/AwardsStream.dart';
-import 'package:pearawards/Collections/NewCollection.dart';
+import 'package:pearawards/Collections/CollectionFunctions.dart';
 import 'package:pearawards/Utils/Converter.dart';
 import 'package:pearawards/Utils/Upload.dart';
 import 'package:pearawards/Utils/Utils.dart';
@@ -53,34 +53,13 @@ class _CollectionStreamState extends State<CollectionStream> {
   List<AwardLoader> awards;
   bool updated = false;
   int loaded = 0;
+  Function remoteRefresh;
 
   String errorMessage = '';
   @override
   void initState() {
     drawer = buildDrawer();
     super.initState();
-  }
-
-  deleteCollection() async {
-    await deleteAwardsFromMemory();
-    awards = [];
-    globals.loadedCollections.remove(widget.collectionInfo.docRef.documentID);
-    widget.collectionInfo.docRef
-        .collection('awards')
-        .getDocuments()
-        .then((snapshot) {
-      for (DocumentSnapshot ds in snapshot.documents) {
-        ds.reference.delete();
-      }
-    });
-    widget.collectionInfo.docRef.delete();
-    Navigator.pop(context);
-    Navigator.pop(context, true);
-  }
-
-  deleteAwardsFromMemory() async {
-    final prefs = (await SharedPreferences.getInstance());
-    prefs.remove(widget.collectionInfo.docRef.documentID);
   }
 
   addGoogleDoc() async {
@@ -116,7 +95,7 @@ class _CollectionStreamState extends State<CollectionStream> {
       ),
       backgroundColor: Colors.green[200],
       body: RefreshIndicator(
-        child: noAwards.value && !isLoading.value
+        child: noAwards.value && !isLoading.value && !shouldLoad.value
             ? ListView(children: [
                 SizedBox(
                   height: MediaQuery.of(context).size.height * 0.8,
@@ -154,6 +133,7 @@ class _CollectionStreamState extends State<CollectionStream> {
                     noAwards: noAwards,
                     refreshParent: () {
                       setState(() {});
+                      rebuildAllChildren(context);
                     },
                   ),
                 ]),
@@ -181,57 +161,10 @@ class _CollectionStreamState extends State<CollectionStream> {
     setState(() {});
   }
 
-  Future<void> auditDocument() async {
-    if (auditing) {
-      return;
-    }
-    auditing = true;
-    Map collection = (await widget.collectionInfo.docRef.get()).data;
-    String url = collection['googledoc'];
-
-    if (url == null) {
-      return;
-    }
-    Result result = await retrieveAwards(url);
-    Map<int, Award> inServer = Map();
-    awards.forEach((a) {
-      if (a.award.fromDoc) {
-        if (inServer[a.award.hash] != null) {
-          Firestore.instance.document(a.award.docPath).delete();
-        } else {
-          inServer[a.award.hash] = a.award;
-        }
-      }
-    });
-    Map<int, Award> inDoc = Map();
-    result.awards.forEach((a) {
-      if (a.fromDoc) {
-        if (inServer[a.hash] == null) {
-          inDoc[a.hash] = a;
-        } else {
-          inServer.remove(a.hash);
-        }
-      }
-    });
-    if (inServer.length > 0 || inDoc.length > 0) {
-      updated = true;
-      widget.collectionInfo.docRef
-          .updateData({'lastEdit': DateTime.now().microsecondsSinceEpoch});
-    }
-
-    inDoc.forEach((dHash, dAward) {
-      dAward.showYear = false;
-      uploadNewAward('users/${globals.firebaseUser.uid}/created_awards', dAward,
-          widget.collectionInfo.docRef, inServer[dHash] == null);
-    });
-    inServer.forEach((sHash, sAward) {
-      Firestore.instance.document(sAward.docPath).delete();
-    });
-    auditing = false;
-  }
+  
 
   newAward() async {
-    bool another = await Navigator.push(
+    Award addedAward = await Navigator.push(
         context,
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) => AddQuote(
@@ -244,7 +177,8 @@ class _CollectionStreamState extends State<CollectionStream> {
                 child: child);
           },
         ));
-    if (another) {
+    if (addedAward != null) {
+      widget.collectionInfo.awards.add(addedAward);
       shouldLoad.value = true;
     }
   }
@@ -296,15 +230,32 @@ class _CollectionStreamState extends State<CollectionStream> {
           ),
           margin: EdgeInsets.all(10.0),
         ),
-        RaisedButton(
-          child: Text('Add to My Collections'),
-          onPressed: () {
-            setState(() {
-              addCollectionReference(globals.firebaseUser,
-                  widget.collectionInfo.docRef, widget.collectionInfo.title);
-            });
-          },
-        ),
+        globals.loadedCollections[widget.collectionInfo.docRef.documentID] ==
+                null
+            ? RaisedButton(
+                child: Text('Add to My Collections'),
+                onPressed: () {
+                  addCollectionReference(
+                      globals.firebaseUser,
+                      widget.collectionInfo.docRef,
+                      widget.collectionInfo.title, () {
+                    setState(() {});
+                  });
+                },
+              )
+            : RaisedButton(
+                child: Text('Remove from My Collections'),
+                onPressed: () {
+                  setState(() {
+                    removeCollectionReference(
+                      globals.firebaseUser,
+                      widget.collectionInfo.docRef,
+                    );
+                    awards = [];
+                    Navigator.pop(context);
+                  });
+                },
+              ),
         Spacer(),
       ],
     );
@@ -450,7 +401,12 @@ class _CollectionStreamState extends State<CollectionStream> {
                 'Delete Document',
                 style: TextStyle(color: Colors.red),
               )),
-          onPressed: deleteCollection,
+          onPressed: () {
+            deleteCollection(widget.collectionInfo.docRef);
+            awards = [];
+            Navigator.pop(context);
+            Navigator.pop(context, true);
+          },
           padding: EdgeInsets.only(bottom: 20.0, left: 15.0),
         ),
       ],
