@@ -427,49 +427,6 @@ class ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget friendTab(User friend) {
-    return Padding(
-      child: RaisedButton(
-          onPressed: () {
-            toFriendPage(friend);
-          },
-          child: Row(children: <Widget>[
-            AspectRatio(
-              aspectRatio: 1.0,
-              child: Container(
-                height: MediaQuery.of(context).size.height / 15,
-                width: MediaQuery.of(context).size.height / 15,
-                margin: EdgeInsets.symmetric(vertical: 5.0),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  image: DecorationImage(
-                    fit: BoxFit.cover,
-                    image: NetworkImage(friend.imageUrl),
-                  ),
-                ),
-              ),
-            ),
-            Expanded(
-              child: Container(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: RichText(
-                    text: TextSpan(
-                      text: friend.displayName,
-                      style: TextStyle(fontSize: 20, color: Colors.black),
-                    ),
-                  ),
-                ),
-                //padding: EdgeInsets.symmetric(horizontal: 5.0),
-              ),
-            ),
-          ]),
-          shape: StadiumBorder(),
-          color: Colors.white),
-      padding: EdgeInsets.only(top: 8.0, left: 8.0, right: 8.0),
-    );
-  }
-
   toFriendPage(User friend) async {
     await Navigator.push(
         context,
@@ -503,7 +460,12 @@ class ProfilePageState extends State<ProfilePage> {
                     gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
                         maxCrossAxisExtent: 500.0, childAspectRatio: 6.0),
                     children: List.generate(friends.length, (index) {
-                      return friendTab(friends.values.toList()[index]);
+                      User friend = friends.values.toList()[index];
+                      return FriendTab(
+                          friend: friend,
+                          onPressed: () {
+                            toFriendPage(friend);
+                          });
                     }))
                 : SliverFillRemaining(
                     child: Column(
