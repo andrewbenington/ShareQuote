@@ -209,9 +209,9 @@ class NewLineFormState extends State<NewLineForm> {
       globals.firebaseAuth = auth;
       Firestore.instance.collection("users")
           .document(result.user.uid)
-          .setData({"image": imageURL, "display": name, "email": email, "friends": ""});
+          .setData({"image": imageURL, "display": name, "display_insensitive" : name.toUpperCase(), "email": email, "friends": ""});
       Firestore.instance.collection("users").document(result.user.uid).collection("friends");
-      Firestore.instance.collection("users").document(result.user.uid).collection("created_awards");
+      Firestore.instance.collection("users").document(result.user.uid).collection("awards");
       Firestore.instance.collection("users").document(result.user.uid).collection("tagged_awards");
       Firestore.instance.collection("users").document(result.user.uid).collection("collections");
       Firestore.instance.collection("users").document(result.user.uid).collection("created_collections");

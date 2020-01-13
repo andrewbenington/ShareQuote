@@ -45,7 +45,9 @@ class _TagUserState extends State<TagUser> {
       ),
       backgroundColor: Colors.green[200],
       body: StreamBuilder(
-          stream: Firestore.instance.collection('users').snapshots(),
+          stream: Firestore.instance
+                    .collection('users')
+                    .snapshots(),
           builder: (context, snapshot) {
             var data = snapshot.data;
             
