@@ -75,18 +75,16 @@ class _CollectionPageState extends State<CollectionPage> {
         loadCollectionFromReference(
             document.data["reference"], document.reference);
       }
+      if (coll == null) {
+        error = true;
+      }
+      loading = false;
+
+      if (mounted) {
+        setState(() {});
+      }
     });
-    if (coll == null) {
-      error = true;
-    }
-    loading = false;
-
-    if (mounted) {
-      setState(() {});
-    }
   }
-
-  
 
   @override
   Widget build(BuildContext context) {

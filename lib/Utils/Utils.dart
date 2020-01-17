@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 
 class PrimitiveWrapper {
-  var value;
+  dynamic value = false;
   PrimitiveWrapper(this.value);
 }
 

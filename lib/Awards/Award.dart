@@ -1,7 +1,10 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart';
 import 'package:pearawards/Awards/TagUser.dart';
 import 'package:pearawards/Profile/ProfilePage.dart';
 import 'package:pearawards/Profile/User.dart';
@@ -30,7 +33,8 @@ class AwardLoader {
       this.award,
       this.numLoaded,
       this.lastEdit,
-      this.refresh}) {
+      this.refresh,
+      this.downloaded}) {
     if (award != null) {
       isLoaded = true;
       award.refresh = refresh;
@@ -38,7 +42,8 @@ class AwardLoader {
       awardFromSnapshot(snap);
       isLoaded = true;
       award.refresh = refresh;
-    } else if (globals.loadedAwards[reference.documentID] != null &&
+    } else if (lastEdit != null &&
+        globals.loadedAwards[reference.documentID] != null &&
         globals.loadedAwards[reference.documentID].lastLoaded > lastEdit) {
       award = globals.loadedAwards[reference.documentID];
       isLoaded = true;
@@ -49,18 +54,30 @@ class AwardLoader {
   final DocumentSnapshot snap;
   final DocumentReference reference;
   final PrimitiveWrapper numLoaded;
+  final PrimitiveWrapper downloaded;
   final Function refresh;
   final int lastEdit;
   Award award;
   bool isLoaded = false;
 
   Future<void> loadAward() async {
+    if (isLoaded) {
+      if (numLoaded != null) {
+        numLoaded.value++;
+      }
+      return;
+    }
     await reference.get().then((doc) {
-      if (!awardFromSnapshot(doc)) {
+      if (pointer != null && !awardFromSnapshot(doc)) {
         pointer.delete();
       }
       isLoaded = true;
-      numLoaded.value++;
+      if (numLoaded != null) {
+        numLoaded.value++;
+      }
+      if (downloaded != null) {
+        downloaded.value++;
+      }
     });
   }
 
@@ -79,9 +96,11 @@ class AwardLoader {
     }
   }
 
-  Widget buildCard(BuildContext context, bool tappable) {
-    if (!isLoaded ||
-        !award.excludesPattern('poo|fuck|Jesus|God|dick|shit|fleshlight')) {
+  Widget buildCard(BuildContext context, bool tappable, bool filter) {
+    if (filter &&
+        (!isLoaded ||
+            !award
+                .excludesPattern('poo|fuck|Jesus|God|dick|shit|fleshlight'))) {
       return Container();
     }
     return buildAwardCard(context, award, tappable);
@@ -108,7 +127,7 @@ Widget buildAwardCard(BuildContext context, Award award, bool tappable) {
                         title: award.author.name +
                             (award.showYear
                                 ? ''
-                                : ' ${formatDateTimeAward(time)}')),
+                                : ', ${formatDateTimeAward(time)}')),
                   ),
                 );
               }
@@ -408,20 +427,30 @@ class Name extends StatelessWidget {
           },
         ));
     if (uid != null) {
+      DocumentReference recipient = Firestore.instance.document('users/$uid');
       Firestore.instance
           .document(a.docPath)
           .updateData({'json': jsonEncode(awardToJson(a))});
-      Firestore.instance
-          .collection('users/$uid/awards')
-          .document(a.hash.toString())
-          .setData({
+      recipient.collection('awards').document(a.hash.toString()).setData({
         'timestamp': a.timestamp,
         'reference': Firestore.instance.document(
             'users/${a.author.uid}/created_awards/${a.hash.toString()}')
       });
-    }
-    if (a.refresh != null) {
-      a.refresh();
+
+      HttpsCallable post = CloudFunctions.instance
+          .getHttpsCallable(functionName: "createNotification");
+      await post.call({
+        'notification': '2',
+        'name': globals.firebaseUser.displayName,
+        'to': uid,
+        'uid': globals.firebaseUser.uid,
+        'award': a.docPath,
+      }).catchError((error) {
+        print(error);
+      });
+      if (a.refresh != null) {
+        a.refresh();
+      }
     }
   }
 
