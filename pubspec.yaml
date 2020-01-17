@@ -27,7 +27,10 @@ dependencies:
   cupertino_icons: ^0.1.2
   firebase_auth: ^0.15.1
   firebase_core: ^0.4.2
+  firebase_messaging: ^5.0.2
+
   cloud_firestore: ^0.12.9+4
+  cloud_functions: ^0.4.1+6
   #string_similarity: ^1.0.1
   shared_preferences: ^0.4.3
   provider: ^4.0.1

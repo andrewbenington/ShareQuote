@@ -5,6 +5,7 @@ import 'dart:isolate';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pearawards/Awards/AddQuote.dart';
+import 'package:pearawards/Awards/Award.dart';
 import 'package:pearawards/Awards/AwardsStream.dart';
 import 'package:flutter/material.dart';
 import 'package:pearawards/Utils/Converter.dart';
@@ -41,6 +42,7 @@ class _HomeFeedState extends State<HomeFeed> {
   String errorMessage = "";
   PrimitiveWrapper shouldLoad = PrimitiveWrapper(false);
   PrimitiveWrapper isLoading = PrimitiveWrapper(false);
+  PrimitiveWrapper filter = PrimitiveWrapper(false);
   final PrimitiveWrapper noAwards = PrimitiveWrapper(false);
 
   @override
@@ -87,6 +89,7 @@ class _HomeFeedState extends State<HomeFeed> {
                       },
                       isLoading: isLoading,
                       noAwards: noAwards,
+                      filter: filter,
                     ),
                   ]),
             onRefresh: refresh,
@@ -110,7 +113,7 @@ class _HomeFeedState extends State<HomeFeed> {
   }
 
   newAward() async {
-    bool another = await Navigator.push(
+    Award another = await Navigator.push(
         context,
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) => AddQuote(
@@ -123,7 +126,7 @@ class _HomeFeedState extends State<HomeFeed> {
                 child: child);
           },
         ));
-    if (another) {
+    if (another != null) {
       shouldLoad.value = true;
     }
   }

@@ -25,7 +25,8 @@ class AwardsStream extends StatefulWidget {
       this.directoryName = "awards",
       this.isLoading,
       this.noAwards,
-      this.numAwards})
+      this.numAwards,
+      this.filter})
       : super(key: key);
 
   // This widget is the home page of your application. It is stateful, meaning
@@ -45,6 +46,7 @@ class AwardsStream extends StatefulWidget {
   final PrimitiveWrapper noAwards;
   final Function refreshParent;
   final PrimitiveWrapper numAwards;
+  final PrimitiveWrapper filter;
   String title;
 
   @override
@@ -63,9 +65,11 @@ class _AwardsStreamState extends State<AwardsStream> {
   List<AwardLoader> awards;
   bool updated = false;
   PrimitiveWrapper loaded = PrimitiveWrapper(0);
+  PrimitiveWrapper downloaded = PrimitiveWrapper(0);
   Map lastEdits;
   bool populateMap = false;
   bool auditing = false;
+  int total = 0;
 
   String errorMessage = "";
   @override
@@ -118,6 +122,7 @@ class _AwardsStreamState extends State<AwardsStream> {
   }
 
   loadAwards() async {
+    downloaded.value = 0;
     widget.isLoading.value = true;
     DocumentSnapshot dSnapshot = await widget.docRef.get();
     if (!dSnapshot.exists) {
@@ -137,16 +142,22 @@ class _AwardsStreamState extends State<AwardsStream> {
           await widget.docRef.collection(widget.directoryName).getDocuments();
       awards = List.generate(docs.documents.length, (index) {
         return AwardLoader(
-            snap: docs.documents[index], refresh: widget.refreshParent);
+            snap: docs.documents[index],
+            refresh: widget.refreshParent,
+            downloaded: downloaded);
       });
       if (widget.numAwards != null) {
         widget.numAwards.value = awards.length;
       }
+      awards.sort((a, b) {
+        return b.award.timestamp - a.award.timestamp;
+      });
       widget.isLoading.value = false;
       widget.shouldLoad.value = false;
       if (mounted) {
         setState(() {});
       }
+      print("Downloaded ${downloaded.value} awards from server");
       return;
     }
 
@@ -157,7 +168,8 @@ class _AwardsStreamState extends State<AwardsStream> {
           awards = List.generate(widget.collectionInfo.awards.length, (a) {
             return AwardLoader(
                 award: widget.collectionInfo.awards[a],
-                refresh: widget.refreshParent);
+                refresh: widget.refreshParent,
+                downloaded: downloaded);
           });
         }
         awards.sort((a, b) {
@@ -173,16 +185,15 @@ class _AwardsStreamState extends State<AwardsStream> {
         widget.shouldLoad.value = false;
         setState(() {});
         widget.refreshParent();
-
+        print("Downloaded ${downloaded.value} awards from server");
         return;
-      } else {
-        print("reloaded all awards");
       }
     }
     loaded.value = 0;
     awards = [];
     QuerySnapshot snapshot =
         await widget.docRef.collection(widget.directoryName).getDocuments();
+    total = snapshot.documents.length;
     if (snapshot.documents.length == 0) {
       widget.noAwards.value = true;
       widget.isLoading.value = false;
@@ -205,7 +216,8 @@ class _AwardsStreamState extends State<AwardsStream> {
           numLoaded: loaded,
           lastEdit:
               lastEdits[doc.documentID] == null ? 0 : lastEdits[doc.documentID],
-          refresh: widget.refreshParent);
+          refresh: widget.refreshParent,
+          downloaded: downloaded);
       initAward(loader);
     }
   }
@@ -217,17 +229,18 @@ class _AwardsStreamState extends State<AwardsStream> {
 
     await loader.loadAward();
     awards.add(loader);
-
-    if (loaded.value != awards.length) {
-      print("${loaded.value} is not ${awards.length}!");
-    }
-    if (widget.collectionInfo != null && loaded.value >= awards.length) {
+    if (loaded.value >= total) {
       awards.sort((a, b) {
+        if (a == null || b == null) {
+          return 0;
+        }
         return b.award.timestamp - a.award.timestamp;
       });
-      storeAwards();
+      if (widget.collectionInfo != null) {
+        storeAwards();
+      }
     }
-    if (loaded.value >= awards.length) {
+    if (loaded.value >= total) {
       widget.isLoading.value = false;
       widget.shouldLoad.value = false;
       if (awards.length > 0) {
@@ -242,6 +255,7 @@ class _AwardsStreamState extends State<AwardsStream> {
       if (mounted) {
         setState(() {});
       }
+      print("Downloaded ${downloaded.value} awards from server");
     }
   }
 
@@ -342,11 +356,11 @@ class _AwardsStreamState extends State<AwardsStream> {
         delegate: SliverChildListDelegate(
       mostRecent
           ? awards.map((a) {
-              return a.buildCard(context, true);
+              return a.buildCard(context, true, widget.filter.value);
             }).toList()
           : awards
               .map((a) {
-                return a.buildCard(context, true);
+                return a.buildCard(context, true, widget.filter.value);
               })
               .toList()
               .reversed

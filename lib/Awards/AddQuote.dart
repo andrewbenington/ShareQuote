@@ -71,6 +71,7 @@ class _AddQuoteState extends State<AddQuote> {
                 icon: Icon(Icons.check, size: 30),
                 onPressed: () {
                   List<Quote> quotes = [];
+                  List<String> uids = [];
                   for (NewLineForm form in lines) {
                     if (form.name != null && form.message != null) {
                       quotes.add(Quote(

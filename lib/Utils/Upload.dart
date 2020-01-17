@@ -13,9 +13,13 @@ Future<void> uploadNewAward(String uploadPath, Award award,
   }
 
   uploadAward(uploadPath, award, collection, !newTime);
-  collection.setData({
-    "awardEdits": {award.hash.toString(): DateTime.now().microsecondsSinceEpoch}
-  }, merge: true);
+  if (collection != null) {
+    collection.setData({
+      "awardEdits": {
+        award.hash.toString(): DateTime.now().microsecondsSinceEpoch
+      }
+    }, merge: true);
+  }
 }
 
 Future<int> uploadDoc(
@@ -59,7 +63,7 @@ Future<int> uploadAward(String uploadPath, Award award,
     "timestamp":
         fullDoc ? award.timestamp : DateTime.now().microsecondsSinceEpoch,
     "likes": 0,
-    "collections": [collection]
+    "collections": collection != null ? [collection] : null
   });
 
   if (collection != null) {

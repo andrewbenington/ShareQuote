@@ -36,6 +36,7 @@ class ProfilePageState extends State<ProfilePage> {
   PrimitiveWrapper shouldLoad = PrimitiveWrapper(false);
   PrimitiveWrapper isLoading = PrimitiveWrapper(false);
   PrimitiveWrapper noAwards = PrimitiveWrapper(false);
+  PrimitiveWrapper filter = PrimitiveWrapper(false);
   PrimitiveWrapper numAwards = PrimitiveWrapper(0);
   List<Widget> tabPages;
 
@@ -115,6 +116,7 @@ class ProfilePageState extends State<ProfilePage> {
         shouldLoad: shouldLoad,
         isLoading: isLoading,
         noAwards: noAwards,
+        filter: filter,
         numAwards: numAwards,
         refreshParent: () {
           setState(() {});
@@ -127,6 +129,7 @@ class ProfilePageState extends State<ProfilePage> {
         shouldLoad: shouldLoad,
         isLoading: isLoading,
         noAwards: noAwards,
+        filter: filter,
         directoryName: 'created_awards',
         directReferences: true,
         refreshParent: () {

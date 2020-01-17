@@ -44,7 +44,7 @@ class _CollectionStreamState extends State<CollectionStream> {
   PrimitiveWrapper shouldLoad = PrimitiveWrapper(false);
   PrimitiveWrapper isLoading = PrimitiveWrapper(false);
   PrimitiveWrapper noAwards = PrimitiveWrapper(false);
-
+  PrimitiveWrapper filter = PrimitiveWrapper(false);
   bool mostRecent = true;
   bool auditing = false;
   bool visibleToPublic = false;
@@ -131,6 +131,7 @@ class _CollectionStreamState extends State<CollectionStream> {
                     shouldLoad: shouldLoad,
                     isLoading: isLoading,
                     noAwards: noAwards,
+                    filter: filter,
                     refreshParent: () {
                       setState(() {});
                       rebuildAllChildren(context);
@@ -160,8 +161,6 @@ class _CollectionStreamState extends State<CollectionStream> {
     shouldLoad.value = true;
     setState(() {});
   }
-
-  
 
   newAward() async {
     Award addedAward = await Navigator.push(
@@ -256,6 +255,29 @@ class _CollectionStreamState extends State<CollectionStream> {
                   });
                 },
               ),
+        FlatButton(
+            child: SizedBox(
+              height: 20,
+              width: double.infinity,
+              child: Row(
+                children: <Widget>[
+                  Text(
+                    'Filter NSFW',
+                  ),
+                  Checkbox(
+                    value: filter.value,
+                    onChanged: (newValue) {
+                      filter.value = newValue;
+                      setState(() {});
+                    },
+                  )
+                ],
+              ),
+            ),
+            onPressed: () {
+              filter.value = !filter.value;
+              setState(() {});
+            }),
         Spacer(),
       ],
     );
@@ -392,6 +414,29 @@ class _CollectionStreamState extends State<CollectionStream> {
             });
           },
         ),
+        FlatButton(
+            child: SizedBox(
+              height: 20,
+              width: double.infinity,
+              child: Row(
+                children: <Widget>[
+                  Text(
+                    'Filter NSFW',
+                  ),
+                  Checkbox(
+                    value: filter.value,
+                    onChanged: (newValue) {
+                      filter.value = newValue;
+                      setState(() {});
+                    },
+                  )
+                ],
+              ),
+            ),
+            onPressed: () {
+              filter.value = !filter.value;
+              setState(() {});
+            }),
         Spacer(),
         FlatButton(
           child: SizedBox(

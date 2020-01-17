@@ -6,9 +6,11 @@ import 'package:pearawards/App/LoginPage.dart';
 import 'package:pearawards/Awards/Award.dart';
 import 'package:pearawards/Collections/CollectionPage.dart';
 import 'package:pearawards/Home/NotificationsPage.dart';
+import 'package:pearawards/Notifications/NotificationHandler.dart';
 import 'package:pearawards/Profile/User.dart';
 import 'package:pearawards/Utils/Globals.dart' as globals;
 import 'package:pearawards/Profile/ProfilePage.dart';
+
 
 final Document overripe = Document(
     url:
@@ -48,7 +50,13 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    var pages = <Widget>[CollectionPage(), HomeFeed(), ProfilePage(User(displayName: globals.firebaseUser.displayName, uid: globals.firebaseUser.uid))];
+    var pages = <Widget>[
+      CollectionPage(),
+      HomeFeed(),
+      ProfilePage(User(
+          displayName: globals.firebaseUser.displayName,
+          uid: globals.firebaseUser.uid))
+    ];
     List<AppBar> bars = [
       AppBar(
         backgroundColor: Colors.green,
@@ -130,14 +138,17 @@ class _HomePageState extends State<HomePage> {
     ];
     return Scaffold(
       appBar: bars[pageIndex],
-      body: PageView(
-        controller: pageController,
-        children: pages,
-        onPageChanged: (newPage) {
-          pageIndex = newPage;
-          setState(() {});
-        },
-      ),
+      body: Stack(children: [
+        PageView(
+          controller: pageController,
+          children: pages,
+          onPageChanged: (newPage) {
+            pageIndex = newPage;
+            setState(() {});
+          },
+        ),
+        NotificationHandler()
+      ]),
       drawer: buildDrawer(),
       bottomNavigationBar: BottomNavigationBar(
         onTap: (index) {

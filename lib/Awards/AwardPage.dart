@@ -1,5 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
-
+import 'package:pearawards/Utils/CustomPainters.dart';
+import 'package:pearawards/Utils/Globals.dart' as globals;
 import 'Award.dart';
 
 class AwardPage extends StatefulWidget {
@@ -22,6 +25,7 @@ class AwardPage extends StatefulWidget {
 }
 
 class _AwardPageState extends State<AwardPage> {
+  TextEditingController commentController = TextEditingController();
   _AwardPageState();
   bool mostRecent = true;
 
@@ -39,12 +43,196 @@ class _AwardPageState extends State<AwardPage> {
         // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
       ),
-      body: ListView(
+      body: StreamBuilder(
+          stream: Firestore.instance
+              .collection('${widget.award.docPath}/comments')
+              .orderBy("timestamp")
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.hasData) {
+              return ListView.builder(
+                  itemBuilder: (BuildContext context, int index) {
+                    if (index == 0) {
+                      return buildSingleAwardCard(context, widget.award);
+                    } else {
+                      Map data = snapshot.data.documents[index - 1].data;
+
+                      return Comment(
+                          message: data["message"],
+                          uid: data["user"],
+                          time: data["time"]);
+                    } // This will build a list of Text widgets with the values from the List<String> that is stored in the streambuilder snapshot
+                  },
+                  itemCount: snapshot.data.documents.length == 0
+                      ? 1
+                      : snapshot.data.documents.length + 1);
+            } else {
+              return ListView();
+            }
+          }),
+      /*ListView(
         children: <Widget>[
           buildAwardCard(context, widget.award, false),
+          Card(
+            child: Padding(
+              padding: EdgeInsets.only(left: 8.0, right: 8.0),
+              child: TextFormField(
+                controller: commentController,
+                decoration: InputDecoration(hintText: "Comment"),
+                minLines: 1,
+                maxLines: 6,
+                textInputAction: TextInputAction.send,
+                onFieldSubmitted: (message) {
+                  commentController.clear();
+                  postComment(message,
+                      Firestore.instance.document(widget.award.docPath));
+                },
+              ),
+            ),
+            margin: EdgeInsets.only(left: 5.0, right: 5.0, top: 5),
+          ),
         ],
-      ),
+      ),*/
       backgroundColor: Colors.green[200],
+    );
+  }
+
+  Widget buildSingleAwardCard(BuildContext context, Award award) {
+    return Card(
+      child: CustomPaint(
+        painter: TabPainter(
+            fromLeft: 0.4,
+            height: 36,
+            color: award.fromDoc ? Colors.grey[300] : Colors.green[100]),
+        child: Column(
+          children: <Widget>[
+            Padding(
+              padding: EdgeInsets.only(left: 15.0, right: 15.0, bottom: 10.0),
+              child: award,
+            ),
+            Container(
+              color: Colors.grey[300],
+              padding: EdgeInsets.only(left: 8.0, right: 8.0),
+              child: TextFormField(
+                autocorrect: false,
+                controller: commentController,
+                decoration: InputDecoration(
+                    hintText: "Comment", border: InputBorder.none),
+                minLines: 1,
+                maxLines: 6,
+                textInputAction: TextInputAction.send,
+                onFieldSubmitted: (message) {
+                  commentController.clear();
+                  postComment(message,
+                      Firestore.instance.document(widget.award.docPath));
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+      margin: EdgeInsets.only(left: 5.0, right: 5.0, top: 5),
+    );
+  }
+
+  postComment(String message, DocumentReference award) async {
+    award
+        .collection("comments")
+        .document(globals.firebaseUser.uid +
+            DateTime.now().microsecondsSinceEpoch.toString())
+        .setData({
+      "message": message,
+      "user": globals.firebaseUser.uid,
+      "timestamp": DateTime.now().microsecondsSinceEpoch
+    });
+    
+  }
+  
+}
+
+class Comment extends StatefulWidget {
+  Comment({this.uid, this.message, this.time});
+  final String uid;
+  final String message;
+  final int time;
+  @override
+  State<StatefulWidget> createState() {
+    return CommentState();
+  }
+}
+
+class CommentState extends State<Comment> {
+  CommentState();
+  bool loadedURL = false;
+  String imageURL;
+  String name = "";
+  NetworkImage image;
+  @override
+  void initState() {
+    super.initState();
+    loadURL();
+  }
+
+  loadURL() async {
+    DocumentSnapshot snap =
+        await Firestore.instance.document('users/${widget.uid}').get();
+    imageURL = snap.data["image"];
+    name = snap.data["display"];
+    loadedURL = true;
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: IntrinsicHeight(
+        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Container(
+            alignment: Alignment.topCenter,
+            color: Colors.green[100],
+            child: Padding(
+                padding: EdgeInsets.all(5),
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: loadedURL
+                      ? BoxDecoration(
+                          image: DecorationImage(image: NetworkImage(imageURL,), fit: BoxFit.cover),
+                          shape: BoxShape.circle,
+                        )
+                      : BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                )),
+          ),
+          Expanded(
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Padding(
+                padding:
+                    EdgeInsets.only(left: 10.0, right: 5.0, top: 5, bottom: 2),
+                child: Text(
+                  name,
+                  overflow: TextOverflow.fade,
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.only(left: 10.0, right: 5.0, bottom: 5),
+                child: Text(
+                  widget.message,
+                  overflow: TextOverflow.fade,
+                  style: TextStyle(fontSize: 16),
+                ),
+              )
+            ]),
+          )
+        ]),
+      ),
+      margin: EdgeInsets.only(left: 5.0, right: 5.0, top: 5),
     );
   }
 }
