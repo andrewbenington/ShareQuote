@@ -13,7 +13,6 @@ import 'package:pearawards/Collections/Collection.dart';
 int currentIndex = 0;
 
 class AwardsStream extends StatefulWidget {
-  static String searchText;
   AwardsStream(
       {Key key,
       this.docRef,
@@ -26,7 +25,9 @@ class AwardsStream extends StatefulWidget {
       this.isLoading,
       this.noAwards,
       this.numAwards,
-      this.filter})
+      this.filter,
+      this.mostRecent,
+      this.searchText})
       : super(key: key);
 
   // This widget is the home page of your application. It is stateful, meaning
@@ -39,6 +40,7 @@ class AwardsStream extends StatefulWidget {
   // always marked "final".
   final bool directReferences;
   final Collection collectionInfo;
+  //source: e.g. collection or user
   final DocumentReference docRef;
   final String directoryName;
   final PrimitiveWrapper shouldLoad;
@@ -47,6 +49,8 @@ class AwardsStream extends StatefulWidget {
   final Function refreshParent;
   final PrimitiveWrapper numAwards;
   final PrimitiveWrapper filter;
+  final PrimitiveWrapper mostRecent;
+  final PrimitiveWrapper searchText;
   String title;
 
   @override
@@ -102,7 +106,7 @@ class _AwardsStreamState extends State<AwardsStream> {
       Map json = jsonDecode(jsonString);
       List<Award> loadedAwards = [];
       for (Map m in json["awards"]) {
-        loadedAwards.add(Award.fromJson(m));
+        loadedAwards.add(Award.fromMap(m));
       }
       widget.collectionInfo.awards = loadedAwards;
       widget.collectionInfo.loaded = true;
@@ -214,8 +218,7 @@ class _AwardsStreamState extends State<AwardsStream> {
           pointer: doc.reference,
           reference: doc.data["reference"],
           numLoaded: loaded,
-          lastEdit:
-              lastEdits[doc.documentID] == null ? 0 : lastEdits[doc.documentID],
+          lastEdit: lastEdits[doc.documentID],
           refresh: widget.refreshParent,
           downloaded: downloaded);
       initAward(loader);
@@ -260,7 +263,7 @@ class _AwardsStreamState extends State<AwardsStream> {
   }
 
   initEdits() async {
-    int lastEdit = (await widget.collectionInfo.docRef.get()).data["lastEdit"];
+    int lastEdit = (await widget.docRef.get()).data["lastEdit"];
     if (lastEdit == null) {
       await widget.collectionInfo.docRef.setData(
           {"lastEdit": DateTime.now().microsecondsSinceEpoch},
@@ -268,8 +271,7 @@ class _AwardsStreamState extends State<AwardsStream> {
     }
     lastEdits = Map.fromIterable(awards,
         key: (a) => a.award.hash.toString(), value: (a) => lastEdit);
-    widget.collectionInfo.docRef
-        .setData({"awardEdits": lastEdits}, merge: true);
+    widget.docRef.setData({"awardEdits": lastEdits}, merge: true);
   }
 
   storeAwards() async {
@@ -281,7 +283,7 @@ class _AwardsStreamState extends State<AwardsStream> {
     final prefs = await SharedPreferences.getInstance();
     List<Map> amaps = [];
     for (Award a in widget.collectionInfo.awards) {
-      amaps.add(awardToJson(a));
+      amaps.add(awardToMap(a));
     }
     prefs.setString(
         widget.collectionInfo.docRef.documentID,
@@ -352,19 +354,56 @@ class _AwardsStreamState extends State<AwardsStream> {
       refresh();
     }
 
-    return SliverList(
-        delegate: SliverChildListDelegate(
-      mostRecent
-          ? awards.map((a) {
-              return a.buildCard(context, true, widget.filter.value);
-            }).toList()
-          : awards
-              .map((a) {
-                return a.buildCard(context, true, widget.filter.value);
-              })
-              .toList()
-              .reversed
-              .toList(),
-    ));
+    return awards.length == 0
+        ? SliverFillRemaining(
+            child: Column(
+              children: <Widget>[
+                Spacer(),
+                widget.isLoading.value ? CircularProgressIndicator() : Text(
+                  'Nothing to see here',
+                  style: TextStyle(
+                      color: Colors.green[800],
+                      fontSize: 40,
+                      fontWeight: FontWeight.bold),
+                ),
+                Spacer()
+              ],
+            ),
+          )
+        : SliverList(
+            delegate: SliverChildListDelegate(
+            widget.searchText != null && widget.searchText.value != null
+                ? mostRecent
+                    ? awards.map((a) {
+                        return a.buildCard(context, true, widget.filter.value);
+                      }).where((test) {
+                        var loader = test as AwardCard;
+                        return loader.award.contains(widget.searchText.value);
+                      }).toList()
+                    : awards
+                        .map((a) {
+                          return a.buildCard(
+                              context, true, widget.filter.value);
+                        })
+                        .toList()
+                        .reversed
+                        .where((test) {
+                          var loader = test as AwardCard;
+                          return loader.award.contains(widget.searchText.value);
+                        })
+                        .toList()
+                : mostRecent
+                    ? awards.map((a) {
+                        return a.buildCard(context, true, widget.filter.value);
+                      }).toList()
+                    : awards
+                        .map((a) {
+                          return a.buildCard(
+                              context, true, widget.filter.value);
+                        })
+                        .toList()
+                        .reversed
+                        .toList(),
+          ));
   }
 }

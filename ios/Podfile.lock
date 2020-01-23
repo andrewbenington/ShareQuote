@@ -332,7 +332,7 @@ DEPENDENCIES:
   - shared_preferences (from `.symlinks/plugins/shared_preferences/ios`)
 
 SPEC REPOS:
-  https://github.com/cocoapods/specs.git:
+  https://github.com/CocoaPods/Specs.git:
     - abseil
     - BoringSSL-GRPC
     - Firebase
@@ -415,4 +415,4 @@ SPEC CHECKSUMS:
 
 PODFILE CHECKSUM: 7eb87517c06f094e21b7a8440f8453c76dec8958
 
-COCOAPODS: 1.6.2
+COCOAPODS: 1.8.4

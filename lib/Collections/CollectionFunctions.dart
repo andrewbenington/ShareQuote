@@ -83,10 +83,19 @@ deleteCollection(DocumentReference docRef) async {
   });
   docRef.collection('document_awards').getDocuments().then((snapshot) {
     for (DocumentSnapshot ds in snapshot.documents) {
+      deleteComments(ds.reference.collection("comments"));
       ds.reference.delete();
     }
   });
   docRef.delete();
+}
+
+deleteComments(CollectionReference colRef) async {
+  QuerySnapshot comments = await colRef.getDocuments();
+
+  for (DocumentSnapshot ds in comments.documents) {
+    ds.reference.delete();
+  }
 }
 
 deleteAwardsFromMemory(String docID) async {
@@ -94,7 +103,7 @@ deleteAwardsFromMemory(String docID) async {
   prefs.remove(docID);
 }
 
-loadCollectionFromReference(
+Future<void> loadCollectionFromReference(
     DocumentReference collection, DocumentReference reference) async {
   DocumentSnapshot document = await collection.get();
   if (!document.exists) {

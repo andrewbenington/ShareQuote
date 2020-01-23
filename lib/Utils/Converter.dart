@@ -347,9 +347,9 @@ bool isValidCharacter(String c) {
       c.codeUnitAt(0) >= 32 && c.codeUnitAt(0) <= 126;
 }
 
-Map awardToJson(Award award) {
-  Map json = Map();
-  json["lines"] = List<Map>();
+Map<String, dynamic> awardToMap(Award award) {
+  Map<String, dynamic> map = Map();
+  map["lines"] = List<Map>();
   for (Line l in award.quotes) {
     Map lineMap = Map();
     if (l.isQuote()) {
@@ -367,18 +367,18 @@ Map awardToJson(Award award) {
     } else {
       lineMap["context"] = l.message;
     }
-    json["lines"].add(lineMap);
+    map["lines"].add(lineMap);
   }
   Map author = Map();
   author["name"] = award.author.name;
   if (award.author.uid != null) {
     author["uid"] = award.author.uid;
   }
-  json["author"] = author;
-  json["timestamp"] = award.timestamp;
-  json["fromdoc"] = award.fromDoc;
-  json["showYear"] = award.showYear;
-  json["nsfw"] = award.nsfw;
-  json["docPath"] = award.docPath;
-  return json;
+  map["author"] = author;
+  map["timestamp"] = award.timestamp;
+  map["fromdoc"] = award.fromDoc;
+  map["showYear"] = award.showYear;
+  map["nsfw"] = award.nsfw;
+  map["docPath"] = award.docPath;
+  return map;
 }

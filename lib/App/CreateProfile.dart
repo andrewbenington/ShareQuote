@@ -83,16 +83,23 @@ class NewLineFormState extends State<NewLineForm> {
                             height: MediaQuery.of(context).size.width * 0.4,
                             width: MediaQuery.of(context).size.width * 0.4,
                             margin: EdgeInsets.only(top: 20, bottom: 20),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              image: DecorationImage(
-                                fit: BoxFit.fill,
-                                image: NetworkImage(
-                                    "https://i.imgur.com/YaWFEJs.jpg"),
-                              ),
-                              border:
-                                  Border.all(width: 5.0, color: Colors.green),
-                            ),
+                            decoration: imageController.text != ""
+                                ? BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    image: DecorationImage(
+                                      fit: BoxFit.fill,
+                                      image: NetworkImage(
+                                         imageController.text),
+                                    ),
+                                    border: Border.all(
+                                        width: 5.0, color: Colors.green),
+                                  )
+                                : BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.green[300],
+                                    border: Border.all(
+                                        width: 5.0, color: Colors.green),
+                                  ),
                           ),
                           alignment: Alignment.center,
                         ),
@@ -100,18 +107,18 @@ class NewLineFormState extends State<NewLineForm> {
                           return a != ""
                               ? null
                               : "Please enter a display name.";
-                        }, false),
+                        }, false, 30),
                         signUpForm(emailController, "Email", (String a) {
                           return a != "" ? null : "Please enter an email.";
-                        }, false),
+                        }, false, 30),
                         signUpForm(passController, "Password", (String a) {
                           return a != "" ? null : "Please enter a password.";
-                        }, true),
+                        }, true, 30),
                         signUpForm(passConfirmController, "Confirm Password",
-                            passwordMatches, true),
+                            passwordMatches, true, 30),
                         signUpForm(imageController, "Image URL", (String a) {
                           return null;
-                        }, false),
+                        }, false, null),
                         Row(
                           children: <Widget>[
                             Spacer(),
@@ -196,8 +203,6 @@ class NewLineFormState extends State<NewLineForm> {
   void attemptSignUp(
       String name, String email, String pass, String imageURL) async {
     formKey.currentState.save();
-    print(email);
-    print(password);
     try {
       FirebaseAuth auth = FirebaseAuth.instance;
       AuthResult result = await auth.createUserWithEmailAndPassword(
@@ -207,14 +212,26 @@ class NewLineFormState extends State<NewLineForm> {
       result.user.updateProfile(info);
       globals.firebaseUser = result.user;
       globals.firebaseAuth = auth;
-      Firestore.instance.collection("users")
+      Firestore.instance.collection("users").document(result.user.uid).setData({
+        "image": imageURL,
+        "display": name,
+        "display_insensitive": name.toUpperCase(),
+        "email": email,
+        "followers": {},
+        "following": {}
+      });
+      Firestore.instance
+          .collection("users")
           .document(result.user.uid)
-          .setData({"image": imageURL, "display": name, "display_insensitive" : name.toUpperCase(), "email": email, "friends": ""});
-      Firestore.instance.collection("users").document(result.user.uid).collection("friends");
-      Firestore.instance.collection("users").document(result.user.uid).collection("awards");
-      Firestore.instance.collection("users").document(result.user.uid).collection("tagged_awards");
-      Firestore.instance.collection("users").document(result.user.uid).collection("collections");
-      Firestore.instance.collection("users").document(result.user.uid).collection("created_collections");
+          .collection("awards");
+      Firestore.instance
+          .collection("users")
+          .document(result.user.uid)
+          .collection("collections");
+      Firestore.instance
+          .collection("users")
+          .document(result.user.uid)
+          .collection("created_collections");
       Navigator.of(context).pushReplacement(MaterialPageRoute(
         builder: (context) => HomePage(),
       ));
@@ -259,25 +276,33 @@ class NewLineFormState extends State<NewLineForm> {
           );
         });
   }
-}
 
-Widget signUpForm(
-    TextEditingController controller, String label, Function validator, bool hide) {
-  return Padding(
-      child: TextFormField(
-        obscureText: hide,
-        validator: validator,
-        controller: controller,
-        decoration: InputDecoration(
-            contentPadding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 20),
-            hintStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-            hintText: label,
-            border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(30.0),
-                borderSide: BorderSide(color: Colors.green, width: 2)),
-            enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(30.0),
-                borderSide: BorderSide(color: Colors.green, width: 2))),
-      ),
-      padding: EdgeInsets.only(bottom: 20.0));
+  Widget signUpForm(TextEditingController controller, String label,
+      Function validator, bool hide, int counter) {
+    return Padding(
+        child: TextFormField(
+          onChanged: (change) {
+            setState(() {});
+          },
+          maxLength: counter != null ? counter : null,
+          obscureText: hide,
+          validator: validator,
+          controller: controller,
+          decoration: InputDecoration(
+              contentPadding:
+                  EdgeInsets.symmetric(vertical: 8.0, horizontal: 20),
+              labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+              labelText: label,
+              counter: counter == null
+                  ? null
+                  : Text((counter - controller.text.length).toString()),
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(5.0),
+                  borderSide: BorderSide(color: Colors.green, width: 2)),
+              enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(5.0),
+                  borderSide: BorderSide(color: Colors.green, width: 2))),
+        ),
+        padding: EdgeInsets.only(bottom: 20.0));
+  }
 }

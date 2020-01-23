@@ -69,21 +69,22 @@ class _CollectionPageState extends State<CollectionPage> {
     loading = true;
     var coll = Firestore.instance
         .collection('users/${globals.firebaseUser.uid}/collections');
-
-    coll.getDocuments().then((colls) {
+    List<Future> waiting = [];
+    await coll.getDocuments().then((colls) {
       for (DocumentSnapshot document in colls.documents) {
-        loadCollectionFromReference(
-            document.data["reference"], document.reference);
-      }
-      if (coll == null) {
-        error = true;
-      }
-      loading = false;
-
-      if (mounted) {
-        setState(() {});
+        waiting.add(loadCollectionFromReference(
+            document.data["reference"], document.reference));
       }
     });
+
+    await Future.wait(waiting);
+    if (coll == null) {
+      error = true;
+    }
+    loading = false;
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
@@ -203,7 +204,6 @@ class _CollectionPageState extends State<CollectionPage> {
   }
 
   createAndUpdate(FirebaseUser user, String title) async {
-    print(await createCollection(user, title));
     load = true;
 
     loadCollections();
