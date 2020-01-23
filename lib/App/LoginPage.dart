@@ -35,7 +35,7 @@ class LoginPageState extends State<LoginPage> {
                 children: <Widget>[
                   Spacer(),
                   Text(
-                    "Share",
+                    "Friend",
                     style: TextStyle(fontSize: 52.0, color: Colors.grey[900]),
                   ),
                   Text(
@@ -59,118 +59,127 @@ class LoginPageState extends State<LoginPage> {
 
   Widget loginWindow() {
     return Stack(children: <Widget>[
-      Card(
-        child: Container(
-          child: Form(
-            key: formKey,
-            child: Column(
-              children: <Widget>[
-                TextFormField(
-                  controller: emailController,
-                  onSaved: (entry) {
-                    email = entry;
-                  },
-                  decoration: InputDecoration(
-                      contentPadding:
-                          EdgeInsets.symmetric(vertical: 8.0, horizontal: 20),
-                      hintStyle:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-                      hintText: "Email",
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(30.0),
-                          borderSide:
-                              BorderSide(color: Colors.green, width: 2)),
-                      enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(30.0),
-                          borderSide:
-                              BorderSide(color: Colors.green, width: 2))),
-                ),
-                Container(
-                  height: MediaQuery.of(context).size.height * 0.03,
-                ),
-                TextFormField(
-                  controller: passController,
-                  onSaved: (entry) {
-                    password = entry;
-                  },
-                  obscureText: true,
-                  decoration: InputDecoration(
-                      contentPadding:
-                          EdgeInsets.symmetric(vertical: 8.0, horizontal: 20),
-                      hintStyle:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-                      hintText: "Password",
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(30.0),
-                          borderSide:
-                              BorderSide(color: Colors.green, width: 2)),
-                      enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(30.0),
-                          borderSide:
-                              BorderSide(color: Colors.green, width: 2))),
-                ),
-                Spacer(),
-                RaisedButton(
-                  child: Text(
-                    "Log In",
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+      Center(
+        child: Card(
+          child: Container(
+            child: Form(
+              key: formKey,
+              child: Column(
+                children: <Widget>[
+                  TextFormField(
+                    controller: emailController,
+                    onSaved: (entry) {
+                      email = entry;
+                    },
+                    decoration: InputDecoration(
+                        contentPadding:
+                            EdgeInsets.symmetric(vertical: 8.0, horizontal: 20),
+                        hintStyle: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 20),
+                        hintText: "Email",
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(30.0),
+                            borderSide:
+                                BorderSide(color: Colors.green, width: 2)),
+                        enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(30.0),
+                            borderSide:
+                                BorderSide(color: Colors.green, width: 2))),
                   ),
-                  color: Colors.green,
-                  elevation: 3.0,
-                  onPressed: () {
-                    loading = true;
-                    attemptLogin(emailController.text, passController.text);
-                  },
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30.0),
+                  Container(
+                    height: MediaQuery.of(context).size.height * 0.03,
                   ),
-                ),
-                FlatButton(
-                  child: Text(
-                    "Sign Up",
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  TextFormField(
+                    controller: passController,
+                    onSaved: (entry) {
+                      password = entry;
+                    },
+                    obscureText: true,
+                    decoration: InputDecoration(
+                        contentPadding:
+                            EdgeInsets.symmetric(vertical: 8.0, horizontal: 20),
+                        hintStyle: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 20),
+                        hintText: "Password",
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(30.0),
+                            borderSide:
+                                BorderSide(color: Colors.green, width: 2)),
+                        enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(30.0),
+                            borderSide:
+                                BorderSide(color: Colors.green, width: 2))),
                   ),
-                  //color: Colors.green,
-                  //elevation: 3.0,
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      growSignupPage(),
-                    );
+                  Spacer(),
+                  RaisedButton(
+                    child: Text(
+                      "Log In",
+                      style:
+                          TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                    color: Colors.green,
+                    elevation: 3.0,
+                    onPressed: () {
+                      loading = true;
+                      attemptLogin(emailController.text, passController.text);
+                    },
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30.0),
+                    ),
+                  ),
+                  FlatButton(
+                    child: Text(
+                      "Sign Up",
+                      style:
+                          TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                    //color: Colors.green,
+                    //elevation: 3.0,
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        growSignupPage(),
+                      );
 
-                    //attemptSignUp(emailController.text, passController.text);
-                  },
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30.0),
+                      //attemptSignUp(emailController.text, passController.text);
+                    },
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30.0),
+                    ),
                   ),
-                ),
-                Spacer(),
-              ],
+                  Spacer(),
+                ],
+              ),
             ),
+            padding: EdgeInsets.only(
+                top: 20.0,
+                left: MediaQuery.of(context).size.height * 0.03,
+                right: MediaQuery.of(context).size.height * 0.03),
+            width: MediaQuery.of(context).size.width * 0.8,
+            height: 280,
           ),
-          padding: EdgeInsets.only(
-              top: 20.0,
-              left: MediaQuery.of(context).size.height * 0.03,
-              right: MediaQuery.of(context).size.height * 0.03),
-          width: MediaQuery.of(context).size.width * 0.8,
-          height: 280,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30.0),
+          ),
+          elevation: 2,
         ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(30.0),
-        ),
-        elevation: 2,
       ),
     ]);
   }
 
   void attemptLogin(String email, String pass) async {
     formKey.currentState.save();
-    print(email);
-    print(password);
     try {
+      setState(() {
+        loading = true;
+      });
+      
       FirebaseAuth auth = FirebaseAuth.instance;
       AuthResult result = await auth.signInWithEmailAndPassword(
           email: email, password: password);
+      setState(() {
+        loading = false;
+      });
       globals.firebaseUser = result.user;
       globals.firebaseAuth = auth;
       globals.loadedCollections = Map();
@@ -178,6 +187,9 @@ class LoginPageState extends State<LoginPage> {
         builder: (context) => HomePage(),
       ));
     } catch (error) {
+      setState(() {
+        loading = false;
+      });
       print(error);
       switch (error.code) {
         case "ERROR_USER_NOT_FOUND":
@@ -210,15 +222,13 @@ class LoginPageState extends State<LoginPage> {
 
   void attemptSignUp(String email, String pass) async {
     formKey.currentState.save();
-    print(email);
-    print(password);
     try {
       FirebaseAuth auth = FirebaseAuth.instance;
       AuthResult result = await auth.createUserWithEmailAndPassword(
           email: email, password: pass);
       globals.firebaseUser = result.user;
       globals.firebaseAuth = auth;
-      Firestore.instance.document(result.user.uid).updateData({"friends" : ""});
+      Firestore.instance.document(result.user.uid).updateData({"friends": ""});
       Navigator.of(context).pushReplacement(MaterialPageRoute(
         builder: (context) => HomePage(),
       ));

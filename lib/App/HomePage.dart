@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:pearawards/Collections/CollectionStream.dart';
 import 'package:pearawards/Home/HomeFeed.dart';
@@ -7,10 +9,10 @@ import 'package:pearawards/Awards/Award.dart';
 import 'package:pearawards/Collections/CollectionPage.dart';
 import 'package:pearawards/Home/NotificationsPage.dart';
 import 'package:pearawards/Notifications/NotificationHandler.dart';
-import 'package:pearawards/Profile/User.dart';
+import 'package:pearawards/Search%20Page/SearchPage.dart';
 import 'package:pearawards/Utils/Globals.dart' as globals;
 import 'package:pearawards/Profile/ProfilePage.dart';
-
+import 'package:pearawards/Utils/Utils.dart';
 
 final Document overripe = Document(
     url:
@@ -33,15 +35,16 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   bool mostRecent = true;
 
-  TextEditingController name_controller = TextEditingController();
-  TextEditingController url_controller = TextEditingController();
-  TextEditingController search_controller = TextEditingController();
+  TextEditingController searchController = TextEditingController();
 
-  PageController pageController = PageController(initialPage: 1);
+  PrimitiveWrapper searchText = PrimitiveWrapper("");
+  PrimitiveWrapper searchRefresh = PrimitiveWrapper(false);
+
+  PageController pageController = PageController(initialPage: 0);
 
   CollectionStream stream;
 
-  int pageIndex = 1;
+  int pageIndex = 0;
 
   @override
   void initState() {
@@ -51,13 +54,64 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     var pages = <Widget>[
-      CollectionPage(),
       HomeFeed(),
-      ProfilePage(User(
-          displayName: globals.firebaseUser.displayName,
-          uid: globals.firebaseUser.uid))
+      SearchPage(searchText: searchText, searchRefresh: searchRefresh),
+      CollectionPage(),
+      ProfilePage(globals.firebaseUser.uid)
     ];
     List<AppBar> bars = [
+      AppBar(
+        backgroundColor: Colors.green,
+        title: Text("Home"),
+        actions: <Widget>[
+          IconButton(
+            icon: Icon(
+              Icons.notifications,
+            ),
+            onPressed: () {
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (context) => NotificationsPage()));
+            },
+          ),
+        ],
+      ),
+      AppBar(
+          backgroundColor: Colors.green,
+          title: Container(
+            height: 35,
+            child: TextField(
+              onChanged: (content) {
+                setState(() {
+                  searchText.value = "";
+                  searchRefresh.value = true;
+                });
+                Timer(Duration(milliseconds: 5), () {
+                  setState(() {
+                    searchText.value = content;
+                    searchRefresh.value = true;
+                  });
+                });
+              },
+              style: TextStyle(color: Colors.white, fontSize: 20),
+              scrollPadding: EdgeInsets.symmetric(vertical: 0.0),
+              cursorColor: Colors.white,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(
+                    borderRadius: new BorderRadius.circular(25.0),
+                    borderSide: BorderSide(color: Colors.green, width: 2)),
+                enabledBorder: OutlineInputBorder(
+                    borderRadius: new BorderRadius.circular(25.0),
+                    borderSide: BorderSide(color: Colors.green, width: 2)),
+                contentPadding:
+                    const EdgeInsets.symmetric(vertical: 0.0, horizontal: 15.0),
+                fillColor: Colors.green[300],
+                filled: true,
+                hintStyle: TextStyle(color: Colors.white, fontSize: 20),
+                hintText: "Search",
+              ),
+              controller: searchController,
+            ),
+          )),
       AppBar(
         backgroundColor: Colors.green,
         title: Text("Collections"),
@@ -73,7 +127,7 @@ class _HomePageState extends State<HomePage> {
                     child: Container(
                       child: TextField(
                         autocorrect: false,
-                        controller: search_controller,
+                        controller: searchController,
                         onChanged: (text) {
                           setState(() {
                             CollectionStream.searchText = text;
@@ -85,21 +139,6 @@ class _HomePageState extends State<HomePage> {
                   )
                 ],
               );
-            },
-          ),
-        ],
-      ),
-      AppBar(
-        backgroundColor: Colors.green,
-        title: Text("Home"),
-        actions: <Widget>[
-          IconButton(
-            icon: Icon(
-              Icons.notifications,
-            ),
-            onPressed: () {
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (context) => NotificationsPage()));
             },
           ),
         ],
@@ -119,7 +158,7 @@ class _HomePageState extends State<HomePage> {
                     child: Container(
                       child: TextField(
                         autocorrect: false,
-                        controller: search_controller,
+                        controller: searchController,
                         onChanged: (text) {
                           setState(() {
                             CollectionStream.searchText = text;
@@ -151,6 +190,8 @@ class _HomePageState extends State<HomePage> {
       ]),
       drawer: buildDrawer(),
       bottomNavigationBar: BottomNavigationBar(
+        unselectedItemColor: Colors.grey[600],
+        selectedItemColor: Colors.green[600],
         onTap: (index) {
           setState(() {
             pageIndex = index;
@@ -159,10 +200,12 @@ class _HomePageState extends State<HomePage> {
         },
         currentIndex: pageIndex,
         items: <BottomNavigationBarItem>[
+          BottomNavigationBarItem(icon: Icon(Icons.home), title: Text("Home")),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.search), title: Text("Search")),
           BottomNavigationBarItem(
               icon: Icon(Icons.collections_bookmark),
               title: Text("Collections")),
-          BottomNavigationBarItem(icon: Icon(Icons.home), title: Text("Home")),
           BottomNavigationBarItem(
               icon: Icon(Icons.person), title: Text("Profile")),
         ],
@@ -264,12 +307,49 @@ class _HomePageState extends State<HomePage> {
           RaisedButton(
             child: Text("Log Out"),
             onPressed: () {
+              //TODO: DELETE DEVICE ID
               globals.firebaseAuth.signOut();
               Navigator.of(context).pushReplacement(MaterialPageRoute(
                 builder: (context) => LoginPage(),
               ));
             },
           ),
+          Spacer(),
+          RaisedButton(
+            child: Text("Attributions"),
+            onPressed: () {
+              Navigator.push(
+                context,
+                PageRouteBuilder(
+                  pageBuilder: (context, animation, secondaryAnimation) =>
+                      Scaffold(
+                    appBar: AppBar(
+                      title: Text("Attributions"),
+                    ),
+                    body: Padding(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 20.0, vertical: 20.0),
+                      child: Column(
+                        children: <Widget>[
+                          //Text("Comments icon created by Alice Design from Noun Project")
+                        ],
+                      ),
+                    ),
+                  ),
+                  transitionsBuilder:
+                      (context, animation, secondaryAnimation, child) {
+                    return ScaleTransition(
+                        scale: animation.drive(CurveTween(curve: Curves.ease)),
+                        alignment: Alignment.center,
+                        child: child);
+                  },
+                ),
+              );
+            },
+          ),
+          Container(
+            height: 100,
+          )
         ],
       ),
     );

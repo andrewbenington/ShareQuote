@@ -1,8 +1,10 @@
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pearawards/Utils/Converter.dart';
+import 'package:pearawards/Utils/Globals.dart' as globals;
 
 import 'package:pearawards/Awards/Award.dart';
 
@@ -58,13 +60,14 @@ Future<int> uploadAward(String uploadPath, Award award,
     DocumentReference collection, bool fullDoc) async {
   DocumentReference awd =
       Firestore.instance.collection(uploadPath).document(award.hash.toString());
-  awd.setData({
-    "json": jsonEncode(awardToJson(award)),
+  Map<String, dynamic> m = awardToMap(award);
+  m.addAll({
     "timestamp":
         fullDoc ? award.timestamp : DateTime.now().microsecondsSinceEpoch,
     "likes": 0,
     "collections": collection != null ? [collection] : null
   });
+  awd.setData(m);
 
   if (collection != null) {
     collection.collection("awards").document(award.hash.toString()).setData({
@@ -75,4 +78,36 @@ Future<int> uploadAward(String uploadPath, Award award,
   }
 
   return 0;
+}
+
+addLike(DocumentReference award, Function onFinished, bool remove) async {
+  if (onFinished == null) {
+    onFinished = () {};
+  }
+  HttpsCallable post =
+      CloudFunctions.instance.getHttpsCallable(functionName: "addRemoveLike");
+  await post.call({
+    "remove": remove ? "true" : "false",
+    "from": globals.firebaseUser.uid,
+    "name": globals.firebaseUser.displayName,
+    "award": award.path
+  }).catchError((error) {
+    print(error);
+    return;
+  });
+  onFinished(true);
+}
+
+massUploadLikes() async {
+  if (globals.likeRequests.length > 1) {
+    return;
+  }
+  Future.delayed(const Duration(minutes: 2), () {
+    if (globals.likeRequests.length > 0) {
+      for (MapEntry entry in globals.likeRequests.entries) {
+        addLike(Firestore.instance.document(entry.key), () {}, !entry.value);
+      }
+      globals.likeRequests = Map();
+    }
+  });
 }

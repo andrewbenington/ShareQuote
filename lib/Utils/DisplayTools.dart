@@ -139,3 +139,53 @@ class ShadowText extends StatelessWidget {
     ]);
   }
 }
+
+class SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
+  SliverTabBarDelegate(this._tabBar);
+
+  final TabBar _tabBar;
+
+  @override
+  double get minExtent => _tabBar.preferredSize.height;
+  @override
+  double get maxExtent => _tabBar.preferredSize.height;
+
+  @override
+  bool shouldRebuild(SliverTabBarDelegate oldDelegate) {
+    return false;
+  }
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      color: Colors.green,
+      child: _tabBar,
+    );
+  }
+}
+
+class SliverTextFieldDelegate extends SliverPersistentHeaderDelegate {
+  SliverTextFieldDelegate(this._field);
+
+  final TextField _field;
+
+  @override
+  double get minExtent => 60;
+  @override
+  double get maxExtent => 60;
+
+  @override
+  bool shouldRebuild(SliverTabBarDelegate oldDelegate) {
+    return false;
+  }
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      color: Colors.green,
+      child: _field,
+    );
+  }
+}

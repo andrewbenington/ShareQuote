@@ -13,6 +13,8 @@ FirebaseUser firebaseUser;
 Map<String, Collection> loadedCollections = Map();
 Map<String, User> loadedUsers = Map();
 Map<String, Award> loadedAwards = Map();
+Map<String, bool> likeRequests = Map();
+
 
 loadUser(String uid) async {
   if (loadedUsers.containsKey(uid)) {

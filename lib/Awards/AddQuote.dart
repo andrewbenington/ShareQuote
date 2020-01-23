@@ -186,10 +186,10 @@ class _AddQuoteState extends State<AddQuote> {
                             ),
                           );
                   })),
-          Container(
-            height: search == null || search == ""
-                ? 0
-                : MediaQuery.of(context).size.height * 0.5,
+          search == null || search == ""
+                ? Container()
+                : Expanded(
+            /*height: MediaQuery.of(context).size.height * 0.5,*/
             child: StreamBuilder(
                 stream: Firestore.instance
                     .collection('users')
@@ -206,6 +206,7 @@ class _AddQuoteState extends State<AddQuote> {
                   }
                   return search == null || search == ""
                       ? Container()
+                      
                       : GridView(
                           gridDelegate:
                               SliverGridDelegateWithMaxCrossAxisExtent(
@@ -213,8 +214,8 @@ class _AddQuoteState extends State<AddQuote> {
                                   childAspectRatio: 6.0),
                           children: List.generate(users.length, (index) {
                             DocumentSnapshot user = users[index];
-                            return FriendTab(
-                              friend: User(
+                            return UserTab(
+                              user: User(
                                   displayName: user.data["display"],
                                   imageUrl: user.data["image"],
                                   uid: user.documentID),
@@ -511,10 +512,3 @@ class NewLineFormState extends State<NewLineForm> {
   }
 }
 
-class TagSuggestions extends StatefulWidget {
-  @override
-  State<StatefulWidget> createState() {
-    // TODO: implement createState
-    return null;
-  }
-}

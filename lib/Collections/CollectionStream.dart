@@ -45,7 +45,8 @@ class _CollectionStreamState extends State<CollectionStream> {
   PrimitiveWrapper isLoading = PrimitiveWrapper(false);
   PrimitiveWrapper noAwards = PrimitiveWrapper(false);
   PrimitiveWrapper filter = PrimitiveWrapper(false);
-  bool mostRecent = true;
+  PrimitiveWrapper mostRecent = PrimitiveWrapper(true);
+  PrimitiveWrapper searchText = PrimitiveWrapper("");
   bool auditing = false;
   bool visibleToPublic = false;
   bool visibleToFriends = false;
@@ -79,10 +80,13 @@ class _CollectionStreamState extends State<CollectionStream> {
     return Scaffold(
       endDrawer: drawer,
       appBar: AppBar(
-        actions: [CollectionActions()],
+        actions: [collectionActions(searchText)],
         leading: IconButton(
           icon: Icon(Icons.close, size: 30),
-          onPressed: () => Navigator.of(context).pop(updated),
+          onPressed: () {
+            searchText.value = "";
+            Navigator.of(context).pop(updated);
+          },
         ),
         title: widget.title == null || widget.title == ''
             ? Container()
@@ -133,9 +137,12 @@ class _CollectionStreamState extends State<CollectionStream> {
                     noAwards: noAwards,
                     filter: filter,
                     refreshParent: () {
-                      setState(() {});
-                      rebuildAllChildren(context);
+                      if (mounted) {
+                        setState(() {});
+                        rebuildAllChildren(context);
+                      }
                     },
+                    searchText: searchText,
                   ),
                 ]),
                 Container(
@@ -204,14 +211,14 @@ class _CollectionStreamState extends State<CollectionStream> {
               Expanded(
                 child: ChoiceChip(
                   labelStyle: TextStyle(
-                      color: mostRecent ? Colors.green : Colors.black87),
+                      color: mostRecent.value ? Colors.green : Colors.black87),
                   label: Text('Latest'),
                   onSelected: (bool selected) {
                     setState(() {
-                      mostRecent = selected;
+                      mostRecent.value = selected;
                     });
                   },
-                  selected: mostRecent,
+                  selected: mostRecent.value,
                 ),
               ),
               Expanded(
@@ -219,10 +226,10 @@ class _CollectionStreamState extends State<CollectionStream> {
                   label: Text('First'),
                   onSelected: (bool selected) {
                     setState(() {
-                      mostRecent = !selected;
+                      mostRecent.value = !selected;
                     });
                   },
-                  selected: !mostRecent,
+                  selected: !mostRecent.value,
                 ),
               ),
             ],
@@ -298,14 +305,14 @@ class _CollectionStreamState extends State<CollectionStream> {
               Expanded(
                 child: ChoiceChip(
                   labelStyle: TextStyle(
-                      color: mostRecent ? Colors.green : Colors.black87),
+                      color: mostRecent.value ? Colors.green : Colors.black87),
                   label: Text('Latest'),
                   onSelected: (bool selected) {
                     setState(() {
-                      mostRecent = selected;
+                      mostRecent.value = selected;
                     });
                   },
-                  selected: mostRecent,
+                  selected: mostRecent.value,
                 ),
               ),
               Expanded(
@@ -313,10 +320,10 @@ class _CollectionStreamState extends State<CollectionStream> {
                   label: Text('First'),
                   onSelected: (bool selected) {
                     setState(() {
-                      mostRecent = !selected;
+                      mostRecent.value = !selected;
                     });
                   },
-                  selected: !mostRecent,
+                  selected: !mostRecent.value,
                 ),
               ),
             ],
@@ -457,16 +464,10 @@ class _CollectionStreamState extends State<CollectionStream> {
       ],
     );
   }
-}
 
-class CollectionActions extends StatelessWidget {
-  TextEditingController searchController = TextEditingController();
-  String getText() {
-    return searchController.text;
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget collectionActions(PrimitiveWrapper searchText) {
+    TextEditingController searchController = TextEditingController();
+    searchController.text = searchText.value;
     return Row(children: <Widget>[
       IconButton(
         icon: Icon(Icons.search),
@@ -478,8 +479,12 @@ class CollectionActions extends StatelessWidget {
               PopupMenuItem(
                 child: Container(
                   child: TextField(
-                    autocorrect: false,
                     controller: searchController,
+                    onChanged: (text) {
+                      searchText.value = text;
+                      setState(() {});
+                    },
+                    autocorrect: false,
                   ),
                   width: 250,
                 ),

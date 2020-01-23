@@ -1,16 +1,14 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:pearawards/Assets/ExtraIcons.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart';
 import 'package:pearawards/Awards/TagUser.dart';
-import 'package:pearawards/Profile/ProfilePage.dart';
-import 'package:pearawards/Profile/User.dart';
 import 'package:pearawards/Utils/Converter.dart';
 import 'package:pearawards/Utils/DisplayTools.dart';
 import 'package:pearawards/Utils/Globals.dart' as globals;
+import 'package:pearawards/Utils/Upload.dart';
 import 'package:pearawards/Utils/Utils.dart';
 
 import 'AwardPage.dart';
@@ -83,7 +81,7 @@ class AwardLoader {
 
   bool awardFromSnapshot(DocumentSnapshot doc) {
     if (doc.exists) {
-      award = Award.fromJson(jsonDecode(doc.data['json']));
+      award = Award.fromMap(doc.data);
       award.likes = doc.data['likes'];
       award.refresh = refresh;
       award.timestamp = doc.data['timestamp'];
@@ -103,7 +101,127 @@ class AwardLoader {
                 .excludesPattern('poo|fuck|Jesus|God|dick|shit|fleshlight'))) {
       return Container();
     }
-    return buildAwardCard(context, award, tappable);
+    return AwardCard(
+      award: award,
+      tappable: tappable,
+    );
+  }
+}
+
+class AwardCard extends StatefulWidget {
+  AwardCard({this.award, this.tappable = true});
+  @override
+  State<StatefulWidget> createState() {
+    return _AwardCardState();
+  }
+
+  final Award award;
+  final bool tappable;
+}
+
+class _AwardCardState extends State<AwardCard> {
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: CustomPaint(
+        painter: TabPainter(
+            fromLeft: 0.4,
+            height: 36,
+            color: widget.award.fromDoc ? Colors.grey[300] : Colors.green[100]),
+        child: FlatButton(
+          splashColor: Colors.transparent,
+          //highlightColor: Colors.transparent,
+          onPressed: widget.tappable
+              ? () {
+                  DateTime time = DateTime.fromMicrosecondsSinceEpoch(
+                      widget.award.timestamp);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AwardPage(
+                          award: widget.award,
+                          title: widget.award.author.name +
+                              (widget.award.showYear
+                                  ? ''
+                                  : ', ${formatDateTimeAward(time)}')),
+                    ),
+                  );
+                }
+              : null,
+          child: Column(
+            children: [
+              widget.award,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: <Widget>[
+                  SizedBox(
+                    child: IconButton(
+                      splashColor: Colors.transparent,
+                      highlightColor: Colors.transparent,
+                      icon: Icon(
+                        widget.award.liked
+                            ? ExtraIcons.heart
+                            : ExtraIcons.heart_empty,
+                        color: Colors.green[600],
+                      ),
+                      onPressed: () {
+                        if (!widget.award.liked) {
+                          if (globals.likeRequests[widget.award.docPath] ==
+                              false) {
+                            globals.likeRequests.remove(widget.award.docPath);
+                          } else {
+                            globals.likeRequests[widget.award.docPath] = true;
+                            massUploadLikes();
+                          }
+                          widget.award.liked = true;
+                          widget.award.likes += 1;
+                        } else if (widget.award.liked) {
+                          if (globals.likeRequests[widget.award.docPath] ==
+                              true) {
+                            globals.likeRequests.remove(widget.award.docPath);
+                          } else {
+                            globals.likeRequests[widget.award.docPath] = false;
+                            massUploadLikes();
+                          }
+                          widget.award.liked = false;
+                          widget.award.likes -= 1;
+                        }
+                        setState(() {});
+                      },
+                    ),
+                    width: 38,
+                  ),
+                  Container(
+                    width: 30,
+                    child: Text(
+                      widget.award.likes.toString(),
+                      style: TextStyle(fontSize: 18, color: Colors.green[600]),
+                    ),
+                  ),
+                  Container(
+                    child: Icon(
+                      ExtraIcons.comment_empty,
+                      color: Colors.green[600],
+                    ),
+                    width: 38,
+                    padding: EdgeInsets.only(bottom: 4),
+                  ),
+                  Padding(
+                    child: Text(
+                      widget.award.likes.toString(),
+                      style: TextStyle(fontSize: 18, color: Colors.green[600]),
+                    ),
+                    padding: EdgeInsets.only(right: 22),
+                  ),
+                ],
+              )
+            ],
+          ),
+        ),
+      ),
+      margin: EdgeInsets.only(left: 5.0, right: 5.0, top: 5),
+    );
   }
 }
 
@@ -115,6 +233,8 @@ Widget buildAwardCard(BuildContext context, Award award, bool tappable) {
           height: 36,
           color: award.fromDoc ? Colors.grey[300] : Colors.green[100]),
       child: FlatButton(
+        splashColor: Colors.transparent,
+        //highlightColor: Colors.transparent,
         onPressed: tappable
             ? () {
                 DateTime time =
@@ -148,33 +268,32 @@ class Award extends StatelessWidget {
       this.fromDoc = false,
       this.showYear = false,
       this.nsfw = false,
+      this.liked = false,
       this.docPath}) {
     for (Line l in quotes) {
       hash ^= l.getHash();
     }
   }
-  factory Award.fromJson(Map<String, dynamic> jsonMap) {
-    List q = jsonMap['lines'];
+  factory Award.fromMap(Map<String, dynamic> map) {
+    List q = map['lines'];
     if (q.length == 0) {
       return null;
     }
     return Award(
-      fromDoc: jsonMap['fromdoc'],
-      showYear: jsonMap['showYear'],
-      timestamp: jsonMap['timestamp'],
-      quotes: q
-          .map(
-            (quote) => Line.fromJson(
-              quote,
-            ),
-          )
-          .toList(),
-      numQuotes: jsonMap['lines'].length,
-      author: Name.fromJson(
-        jsonMap['author'],
+      fromDoc: map['fromdoc'],
+      showYear: map['showYear'],
+      timestamp: map['timestamp'],
+      quotes: q.map(
+        (quote) {
+          return Line.fromMap(quote);
+        },
+      ).toList(),
+      numQuotes: map['lines'].length,
+      author: Name.fromMap(
+        map['author'],
       ),
-      nsfw: jsonMap['nsfw'],
-      docPath: jsonMap['docPath'],
+      nsfw: map['nsfw'],
+      docPath: map['docPath'],
     );
   }
 
@@ -185,6 +304,7 @@ class Award extends StatelessWidget {
   final bool fromDoc;
   bool nsfw;
   bool showYear;
+  bool liked;
   String docPath;
   int likes = 0;
   int hash = 0;
@@ -290,7 +410,6 @@ class Award extends StatelessWidget {
         Column(
           children: quotes,
         ),
-        Text(likes == 0 ? 'like' : likes.toString())
       ],
     ));
   }
@@ -299,11 +418,11 @@ class Award extends StatelessWidget {
 abstract class Line extends StatelessWidget {
   Line(String m) : message = m;
   final String message;
-  factory Line.fromJson(Map<String, dynamic> jsonMap) {
-    if (jsonMap['name'] == null) {
-      return Context.fromJson(jsonMap);
+  factory Line.fromMap(Map map) {
+    if (map['name'] == null) {
+      return Context.fromMap(map);
     } else {
-      return Quote.fromJson(jsonMap);
+      return Quote.fromMap(map);
     }
   }
 
@@ -316,10 +435,10 @@ abstract class Line extends StatelessWidget {
 class Quote extends Line {
   Quote({this.message, this.name}) : super(message);
 
-  factory Quote.fromJson(Map<String, dynamic> jsonMap) {
+  factory Quote.fromMap(Map map) {
     return Quote(
-      message: jsonMap['quote'],
-      name: Name.fromJson(jsonMap['name']),
+      message: map['quote'],
+      name: Name.fromMap(map['name']),
     );
   }
   final String message;
@@ -362,9 +481,9 @@ class Quote extends Line {
 class Context extends Line {
   Context({this.message}) : super(message);
 
-  factory Context.fromJson(Map<String, dynamic> jsonMap) {
+  factory Context.fromMap(Map map) {
     return Context(
-      message: jsonMap['context'],
+      message: map['context'],
     );
   }
   final String message;
@@ -404,10 +523,10 @@ class Context extends Line {
 class Name extends StatelessWidget {
   Name({this.name, this.uid});
 
-  factory Name.fromJson(Map<String, dynamic> jsonMap) {
+  factory Name.fromMap(Map map) {
     return Name(
-      name: jsonMap['name'],
-      uid: jsonMap['uid'],
+      name: map['name'],
+      uid: map['uid'],
     );
   }
   String name;
@@ -428,29 +547,18 @@ class Name extends StatelessWidget {
         ));
     if (uid != null) {
       DocumentReference recipient = Firestore.instance.document('users/$uid');
-      Firestore.instance
-          .document(a.docPath)
-          .updateData({'json': jsonEncode(awardToJson(a))});
+      Firestore.instance.document(a.docPath).updateData(awardToMap(a));
       recipient.collection('awards').document(a.hash.toString()).setData({
         'timestamp': a.timestamp,
         'reference': Firestore.instance.document(
             'users/${a.author.uid}/created_awards/${a.hash.toString()}')
       });
-
-      HttpsCallable post = CloudFunctions.instance
-          .getHttpsCallable(functionName: "createNotification");
-      await post.call({
+      sendNotification(uid, {
         'notification': '2',
         'name': globals.firebaseUser.displayName,
-        'to': uid,
         'uid': globals.firebaseUser.uid,
         'award': a.docPath,
-      }).catchError((error) {
-        print(error);
       });
-      if (a.refresh != null) {
-        a.refresh();
-      }
     }
   }
 
@@ -458,6 +566,8 @@ class Name extends StatelessWidget {
   Widget build(BuildContext context) {
     return Align(
       child: FlatButton(
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
         child: Container(
           child: RichText(
             text: TextSpan(
@@ -476,23 +586,7 @@ class Name extends StatelessWidget {
                 tagUser(context);
               }
             : () {
-                Navigator.push(
-                    context,
-                    PageRouteBuilder(
-                      pageBuilder: (context, animation, secondaryAnimation) =>
-                          Scaffold(
-                              appBar: AppBar(),
-                              body: ProfilePage(
-                                  User(displayName: name, uid: uid))),
-                      transitionsBuilder:
-                          (context, animation, secondaryAnimation, child) {
-                        return ScaleTransition(
-                            scale:
-                                animation.drive(CurveTween(curve: Curves.ease)),
-                            alignment: Alignment.center,
-                            child: child);
-                      },
-                    ));
+                visitUserPage(uid, context);
               },
       ),
       alignment: Alignment.centerRight,
