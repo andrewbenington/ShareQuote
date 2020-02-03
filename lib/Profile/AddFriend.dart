@@ -146,7 +146,7 @@ class _AddFriendState extends State<AddFriend> {
     HttpsCallable post = CloudFunctions.instance
         .getHttpsCallable(functionName: "sendFollowRequest");
     var result = await post.call({
-      "remove": widget.following.indexOf(globals.firebaseUser.uid) != 7
+      "remove": widget.following.indexOf(globals.firebaseUser.uid) >=0
           ? "true"
           : "false",
       "from": globals.firebaseUser.uid,

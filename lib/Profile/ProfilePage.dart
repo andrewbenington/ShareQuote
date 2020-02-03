@@ -32,6 +32,7 @@ class ProfilePageState extends State<ProfilePage> {
   String imageURL = '';
   String displayName;
   bool loading = false;
+  bool verified = false;
 
   Map<String, Collection> collections = Map();
   List<AwardLoader> awards = [];
@@ -46,7 +47,7 @@ class ProfilePageState extends State<ProfilePage> {
   List<Widget> tabPages;
   bool notifications = false;
 
-  initState() {
+  void initState() {
     super.initState();
     loadCollections();
     loadData();
@@ -91,6 +92,10 @@ class ProfilePageState extends State<ProfilePage> {
   Future<void> loadData() async {
     DocumentSnapshot me =
         await Firestore.instance.document('users/${widget.uid}').get();
+    verified = (await Firestore.instance
+            .document('verified_users/${widget.uid}')
+            .get())
+        .exists;
     imageURL = me.data['image'];
     displayName = me.data["display"];
     if (me.data["followers"] != null) {
@@ -127,20 +132,20 @@ class ProfilePageState extends State<ProfilePage> {
     tabPages = [
       AwardsStream(
         docRef: Firestore.instance.document('users/${widget.uid}'),
-        title: displayName == null ? "" : displayName,
         shouldLoad: shouldLoad,
         isLoading: isLoading,
         noAwards: noAwards,
         filter: filter,
         numAwards: numAwards,
         refreshParent: () {
-          setState(() {});
+          if (mounted) {
+            setState(() {});
+          }
           rebuildAllChildren(context);
         },
       ),
       AwardsStream(
         docRef: Firestore.instance.document('users/${widget.uid}'),
-        title: displayName == null ? "" : displayName,
         shouldLoad: shouldLoad,
         isLoading: isLoading,
         noAwards: noAwards,
@@ -214,7 +219,6 @@ class ProfilePageState extends State<ProfilePage> {
                   SliverPersistentHeader(
                     floating: true,
                     delegate: SliverTabBarDelegate(
-                      
                       TabBar(
                         indicatorColor: Colors.white,
                         labelPadding: EdgeInsets.symmetric(vertical: 10.0),
@@ -450,7 +454,7 @@ class ProfilePageState extends State<ProfilePage> {
         alignment: Alignment.centerLeft,
         margin: EdgeInsets.only(left: 25.0),
         child: ShadowText(
-          text: displayName == null ? "" : displayName,
+          text: displayName == null ? "" : displayName + (verified ? " " : ""),
           offset: 4.0,
           style: TextStyle(
               fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white),
@@ -462,9 +466,10 @@ class ProfilePageState extends State<ProfilePage> {
       child: Container(
         height: screenSize.width * 0.25,
         width: screenSize.width * 0.25,
-        decoration: imageURL == null
+        decoration: imageURL == null || imageURL == ""
             ? BoxDecoration(
                 shape: BoxShape.circle,
+                color: Colors.grey[300],
                 border: Border.all(width: 3.0, color: Colors.white),
                 boxShadow: [BoxShadow()])
             : BoxDecoration(
@@ -505,7 +510,7 @@ class ProfilePageState extends State<ProfilePage> {
     await Future.wait([loadCollections(), loadData()]);
     isLoading.value = false;
     shouldLoad.value = true;
-    rebuildAllChildren(context);
+    //rebuildAllChildren(context);
     setState(() {});
   }
 
@@ -620,12 +625,13 @@ class ProfilePageState extends State<ProfilePage> {
                     gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
                         maxCrossAxisExtent: 500.0, childAspectRatio: 6.0),
                     children: List.generate(users.length, (index) {
-                      return UserTab(
+                    
+                      return users[index] != null ? UserTab(
                         onPressed: () {
                           toUserPage(users[index]);
                         },
                         uid: users[index],
-                      );
+                      ) : Container();
                     }))
                 : Center(
                     child: Column(
@@ -657,5 +663,3 @@ class ProfilePageState extends State<ProfilePage> {
     refreshAll();
   }
 }
-
-

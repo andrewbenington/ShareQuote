@@ -4,9 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:pearawards/Utils/Globals.dart' as globals;
 import 'HomePage.dart';
 
-String message = "";
-
-List<NewLineForm> lines = [];
+List<NewProfileForm> lines = [];
 
 class CreateProfile extends StatefulWidget {
   CreateProfile({Key key, this.document, this.title}) : super(key: key);
@@ -19,26 +17,23 @@ class CreateProfile extends StatefulWidget {
 }
 
 class _CreateProfileState extends State<CreateProfile> {
-  bool mostRecent = true;
   String errorMessage = "";
 
   @override
   void initState() {
-    lines = [];
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-    return NewLineForm();
+    return NewProfileForm();
   }
 }
 
-class NewLineForm extends StatefulWidget {
-  NewLineForm({this.index, this.key, this.remove});
+class NewProfileForm extends StatefulWidget {
+  NewProfileForm({this.index, this.key, this.remove});
   ValueKey key;
   int index;
-  String message;
   String name;
   Function remove;
   bool editing = true;
@@ -46,15 +41,15 @@ class NewLineForm extends StatefulWidget {
 
   @override
   State<StatefulWidget> createState() {
-    return NewLineFormState();
+    return NewProfileFormState();
   }
 }
 
-class NewLineFormState extends State<NewLineForm> {
+class NewProfileFormState extends State<NewProfileForm> {
   String email;
   String password;
   String errorMessage;
-  bool loading = false;
+
   TextEditingController passController = TextEditingController();
   TextEditingController passConfirmController = TextEditingController();
   TextEditingController emailController = TextEditingController();
@@ -88,8 +83,7 @@ class NewLineFormState extends State<NewLineForm> {
                                     shape: BoxShape.circle,
                                     image: DecorationImage(
                                       fit: BoxFit.fill,
-                                      image: NetworkImage(
-                                         imageController.text),
+                                      image: NetworkImage(imageController.text),
                                     ),
                                     border: Border.all(
                                         width: 5.0, color: Colors.green),
@@ -216,9 +210,14 @@ class NewLineFormState extends State<NewLineForm> {
         "image": imageURL,
         "display": name,
         "display_insensitive": name.toUpperCase(),
-        "email": email,
         "followers": {},
         "following": {}
+      });
+      Firestore.instance
+          .collection("users_private")
+          .document(result.user.uid)
+          .setData({
+        "email": email,
       });
       Firestore.instance
           .collection("users")
@@ -258,9 +257,7 @@ class NewLineFormState extends State<NewLineForm> {
           }
       }
 
-      setState(() {
-        loading = false;
-      });
+      setState(() {});
       showErrorMessage();
     }
   }

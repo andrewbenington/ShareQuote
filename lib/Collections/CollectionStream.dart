@@ -80,7 +80,7 @@ class _CollectionStreamState extends State<CollectionStream> {
     return Scaffold(
       endDrawer: drawer,
       appBar: AppBar(
-        actions: [collectionActions(searchText)],
+        actions: [CollectionActions(searchText)],
         leading: IconButton(
           icon: Icon(Icons.close, size: 30),
           onPressed: () {
@@ -128,10 +128,12 @@ class _CollectionStreamState extends State<CollectionStream> {
               ])
             : Stack(children: <Widget>[
                 CustomScrollView(slivers: <Widget>[
+                  SliverList(
+                    delegate: SliverChildListDelegate([Container()]),
+                  ),
                   AwardsStream(
                     collectionInfo: widget.collectionInfo,
                     docRef: widget.collectionInfo.docRef,
-                    title: widget.collectionInfo.title,
                     shouldLoad: shouldLoad,
                     isLoading: isLoading,
                     noAwards: noAwards,
@@ -242,9 +244,8 @@ class _CollectionStreamState extends State<CollectionStream> {
                 child: Text('Add to My Collections'),
                 onPressed: () {
                   addCollectionReference(
-                      globals.firebaseUser,
-                      widget.collectionInfo.docRef,
-                      widget.collectionInfo.title, () {
+                      widget.collectionInfo.docRef, widget.collectionInfo.title,
+                      () {
                     setState(() {});
                   });
                 },
@@ -254,7 +255,6 @@ class _CollectionStreamState extends State<CollectionStream> {
                 onPressed: () {
                   setState(() {
                     removeCollectionReference(
-                      globals.firebaseUser,
                       widget.collectionInfo.docRef,
                     );
                     awards = [];
@@ -464,10 +464,24 @@ class _CollectionStreamState extends State<CollectionStream> {
       ],
     );
   }
+}
 
-  Widget collectionActions(PrimitiveWrapper searchText) {
-    TextEditingController searchController = TextEditingController();
-    searchController.text = searchText.value;
+class CollectionActions extends StatefulWidget {
+  CollectionActions(this.searchText);
+  final PrimitiveWrapper searchText;
+
+  @override
+  State<StatefulWidget> createState() {
+    return CollectionActionsState();
+  }
+}
+
+class CollectionActionsState extends State<CollectionActions> {
+  TextEditingController searchController = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    searchController.text = widget.searchText.value;
     return Row(children: <Widget>[
       IconButton(
         icon: Icon(Icons.search),
@@ -481,7 +495,7 @@ class _CollectionStreamState extends State<CollectionStream> {
                   child: TextField(
                     controller: searchController,
                     onChanged: (text) {
-                      searchText.value = text;
+                      widget.searchText.value = text;
                       setState(() {});
                     },
                     autocorrect: false,

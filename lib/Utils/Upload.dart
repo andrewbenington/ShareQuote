@@ -50,7 +50,7 @@ Future<int> uploadDoc(
     int time = DateTime.now().microsecondsSinceEpoch;
     collection.setData(
         Map.fromIterable(result.awards,
-            key: (a) => a.award.hash.toString(), value: (a) => time),
+            key: (a) => a.hash.toString(), value: (a) => time),
         merge: true);
     return 0;
   });
@@ -93,6 +93,7 @@ addLike(DocumentReference award, Function onFinished, bool remove) async {
     "award": award.path
   }).catchError((error) {
     print(error);
+    onFinished(false);
     return;
   });
   onFinished(true);
@@ -102,12 +103,28 @@ massUploadLikes() async {
   if (globals.likeRequests.length > 1) {
     return;
   }
-  Future.delayed(const Duration(minutes: 2), () {
+  Future.delayed(const Duration(seconds: 10), () {
+    bool error = false;
     if (globals.likeRequests.length > 0) {
       for (MapEntry entry in globals.likeRequests.entries) {
-        addLike(Firestore.instance.document(entry.key), () {}, !entry.value);
+        addLike(Firestore.instance.document(entry.key), (completed) {
+          if (!completed) {
+            error = true;
+            String hash = entry.key.substring(entry.key.lastIndexOf('\/') + 1);
+            if (entry.value) {
+              globals.loadedAwards[hash].likes -= 1;
+              globals.loadedAwards[hash].liked = false;
+            } else {
+              globals.loadedAwards[hash].likes += 1;
+              globals.loadedAwards[hash].liked = true;
+            }
+          }
+          globals.likeRequests.remove(entry.key);
+        }, !entry.value);
       }
-      globals.likeRequests = Map();
+    }
+    if (error) {
+      print("error liking post");
     }
   });
 }

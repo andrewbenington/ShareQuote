@@ -62,30 +62,19 @@ class _HomeFeedState extends State<HomeFeed> {
       body: Stack(children: <Widget>[
         Center(
           child: RefreshIndicator(
-            child: noAwards.value && !isLoading.value
-                ? ListView(children: [
-                    SizedBox(
-                      height: MediaQuery.of(context).size.height * 0.7,
-                        child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                          Text(
-                            'No Awards',
-                            style: TextStyle(
-                                color: Colors.green[800],
-                                fontSize: 40,
-                                fontWeight: FontWeight.bold),
-                          )
-                        ]))
-                  ])
-                : CustomScrollView(slivers: <Widget>[
+            child: CustomScrollView(slivers: <Widget>[
+                    SliverList(
+                      delegate: SliverChildListDelegate([Container()]),
+                    ),
                     AwardsStream(
-                      docRef: Firestore.instance
-                          .document('users/${globals.firebaseUser.uid}'),
+                      docRef: Firestore.instance.document(
+                          'users_private/${globals.firebaseUser.uid}'),
                       directoryName: 'feed',
                       shouldLoad: shouldLoad,
                       refreshParent: () {
-                        setState(() {});
+                        if (mounted) {
+                          setState(() {});
+                        }
                       },
                       isLoading: isLoading,
                       noAwards: noAwards,

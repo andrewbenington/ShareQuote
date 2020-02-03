@@ -205,8 +205,9 @@ class _CollectionPageState extends State<CollectionPage> {
 
   createAndUpdate(FirebaseUser user, String title) async {
     load = true;
-
-    loadCollections();
+    await createCollection(title);
+    await loadCollections();
+    load = false;
   }
 }
 
@@ -218,7 +219,7 @@ class CollectionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (c == null) {
+    if (c.owner == null) {
       int i = 0;
     }
     return Card(

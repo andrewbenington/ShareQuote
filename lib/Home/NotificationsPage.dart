@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:pearawards/Assets/ExtraIcons.dart';
 import 'package:pearawards/Awards/Award.dart';
 import 'package:pearawards/Awards/AwardPage.dart';
 import 'package:pearawards/Profile/ProfilePage.dart';
@@ -23,9 +24,8 @@ class NotificationsPageState extends State<NotificationsPage> {
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: Firestore.instance
-            .collection('users')
-            .document(globals.firebaseUser.uid)
-            .collection('notifications')
+            .collection(
+                'users_private/${globals.firebaseUser.uid}/notifications')
             .orderBy("time", descending: true)
             .snapshots(),
         builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
@@ -63,6 +63,15 @@ class NotificationsPageState extends State<NotificationsPage> {
       5: '${data['name']} liked an award you received',
       6: '${data['name']} commented on an award you received'
     };
+    Map<int, Icon> icons = {
+      0: Icon(ExtraIcons.heart),
+      1: Icon(ExtraIcons.comment),
+      2: Icon(Icons.bookmark),
+      3: Icon(Icons.person),
+      4: Icon(Icons.error),
+      5: Icon(ExtraIcons.heart),
+      6: Icon(ExtraIcons.comment)
+    };
     return ListTile(
         title: Text(
           messages[data['notification']],
@@ -87,7 +96,7 @@ class NotificationsPageState extends State<NotificationsPage> {
             : () {
                 visitUserPage(data['uid'], context);
               },
-        trailing: Icon(Icons.bookmark));
+        trailing: icons[data['notification']]);
   }
 
   confirmFriendRequest(String uid) async {

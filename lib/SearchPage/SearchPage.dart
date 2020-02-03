@@ -1,15 +1,19 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:pearawards/Awards/AwardsStream.dart';
+import 'package:pearawards/Collections/CollectionPage.dart';
 import 'package:pearawards/Profile/User.dart';
 import 'package:pearawards/Utils/DisplayTools.dart';
 import 'package:pearawards/Utils/Utils.dart';
 import 'package:pearawards/Utils/Globals.dart' as globals;
 
 class SearchPage extends StatefulWidget {
-  SearchPage({this.searchText, this.searchRefresh});
+  SearchPage({this.searchText, this.searchRefresh, this.searchController});
   final PrimitiveWrapper searchText;
   final PrimitiveWrapper searchRefresh;
+  final TextEditingController searchController;
 
   @override
   State<StatefulWidget> createState() {
@@ -28,16 +32,47 @@ class _SearchPageState extends State<SearchPage> {
   List tabPages = [];
   bool loading = false;
   List following = [];
+  List users;
   TextEditingController searchController = TextEditingController();
-  StreamBuilder<QuerySnapshot> stream;
 
   @override
   void initState() {
     super.initState();
+    widget.searchController.addListener(() {
+      if (mounted) {
+        loadUsers();
+      }
+    });
   }
 
   Future<void> refreshAll() async {
     return;
+  }
+
+  loadUsers() async {
+    if (widget.searchController.text == null ||
+        widget.searchController.text == "") {
+      users = [];
+    } else {
+      users = [];
+      setState((){});
+      Timer(Duration(milliseconds: 10), () async {
+        users = await Firestore.instance
+            .collection('users')
+            .where('display_insensitive',
+                isGreaterThanOrEqualTo:
+                    widget.searchController.text.toUpperCase())
+            .where('display_insensitive',
+                isLessThan:
+                    incrementString(widget.searchController.text.toUpperCase()))
+            .limit(50)
+            .getDocuments()
+            .then((docs) {
+          return docs.documents;
+        });
+        setState(() {});
+      });
+    }
   }
 
   Future<void> loadData() async {
@@ -57,23 +92,36 @@ class _SearchPageState extends State<SearchPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.searchText.value == null || widget.searchText.value == "") {
-      stream = null;
-    } else {
-      stream = userStream(widget.searchText.value);
-    }
     tabPages = [
-      stream == null
+      users == null || users.length == 0
           ? SliverToBoxAdapter(child: Container())
           : RefreshIndicator(
               onRefresh: () {
                 return refreshAll();
               },
-              child: stream,
-            ),
+              child: widget.searchController.text == null ||
+                      widget.searchController.text == ""
+                  ? SliverList(
+                      delegate: SliverChildListDelegate([Container()]),
+                    )
+                  : SliverGrid(
+                      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 500.0, childAspectRatio: 6.0),
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        DocumentSnapshot user = users[index];
+                        return UserTab(
+                          user: User(
+                              displayName: user.data["display"],
+                              imageUrl: user.data["image"],
+                              uid: user.documentID),
+                          onPressed: () {
+                            visitUserPage(user.documentID, context);
+                          },
+                        );
+                      }, childCount: users.length))),
       AwardsStream(
-        docRef:
-            Firestore.instance.document('users/${globals.firebaseUser.uid}'),
+        docRef: Firestore.instance
+            .document('users_private/${globals.firebaseUser.uid}'),
         directoryName: 'feed',
         shouldLoad: shouldLoad,
         refreshParent: () {

@@ -1,29 +1,18 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:pearawards/Collections/CollectionStream.dart';
 import 'package:pearawards/Home/HomeFeed.dart';
 import 'package:pearawards/App/LoginPage.dart';
-
 import 'package:pearawards/Awards/Award.dart';
 import 'package:pearawards/Collections/CollectionPage.dart';
 import 'package:pearawards/Home/NotificationsPage.dart';
 import 'package:pearawards/Notifications/NotificationHandler.dart';
-import 'package:pearawards/Search%20Page/SearchPage.dart';
+import 'package:pearawards/SearchPage/SearchPage.dart';
 import 'package:pearawards/Utils/Globals.dart' as globals;
 import 'package:pearawards/Profile/ProfilePage.dart';
 import 'package:pearawards/Utils/Utils.dart';
-
-final Document overripe = Document(
-    url:
-        "https://docs.google.com/document/d/e/2PACX-1vTSk3SDoGiEVRtYNcylmyGU7hm4ekxdE9x19VFE65In1wV_wDlqI8fNxuSEzZOMz2Nn0KpDu3VAtfv3/pub",
-    name: "Overripe");
-final Document underripe = Document(
-    url:
-        "https://docs.google.com/document/d/e/2PACX-1vRj7ehq0PMd6k2fu6UEhHpKOVwEBIRdPui6xkyB8OwcZKMN-dZJg9oBZZuvkXgSQSSQjbRIeTXkUxIE/pub",
-    name: "Underripe");
-
-List<Document> documents = [overripe, underripe];
 
 class HomePage extends StatefulWidget {
   @override
@@ -51,11 +40,13 @@ class _HomePageState extends State<HomePage> {
     super.initState();
   }
 
+  
+
   @override
   Widget build(BuildContext context) {
     var pages = <Widget>[
       HomeFeed(),
-      SearchPage(searchText: searchText, searchRefresh: searchRefresh),
+      SearchPage(searchText: searchText, searchRefresh: searchRefresh, searchController: searchController,),
       CollectionPage(),
       ProfilePage(globals.firebaseUser.uid)
     ];
@@ -81,15 +72,10 @@ class _HomePageState extends State<HomePage> {
             height: 35,
             child: TextField(
               onChanged: (content) {
-                setState(() {
+
                   searchText.value = "";
                   searchRefresh.value = true;
-                });
-                Timer(Duration(milliseconds: 5), () {
-                  setState(() {
-                    searchText.value = content;
-                    searchRefresh.value = true;
-                  });
+                setState(() {
                 });
               },
               style: TextStyle(color: Colors.white, fontSize: 20),
