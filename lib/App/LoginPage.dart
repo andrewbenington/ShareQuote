@@ -17,6 +17,7 @@ class LoginPageState extends State<LoginPage> {
   String password;
   String errorMessage;
   bool loading = false;
+  bool persistAuth = false;
   TextEditingController passController = TextEditingController();
   TextEditingController emailController = TextEditingController();
   final formKey = GlobalKey<FormState>();
@@ -35,7 +36,7 @@ class LoginPageState extends State<LoginPage> {
                 children: <Widget>[
                   Spacer(),
                   Text(
-                    "Friend",
+                    "Share",
                     style: TextStyle(fontSize: 52.0, color: Colors.grey[900]),
                   ),
                   Text(
@@ -65,6 +66,7 @@ class LoginPageState extends State<LoginPage> {
             child: Form(
               key: formKey,
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
                   TextFormField(
                     controller: emailController,
@@ -110,7 +112,18 @@ class LoginPageState extends State<LoginPage> {
                             borderSide:
                                 BorderSide(color: Colors.green, width: 2))),
                   ),
-                  Spacer(),
+                  Row(
+                    children: <Widget>[
+                      Checkbox(
+                        value: persistAuth,
+                        onChanged: (changed) {
+                          persistAuth = changed;
+                          setState(() {});
+                        },
+                      ),
+                      Text("Stay signed in")
+                    ],
+                  ),
                   RaisedButton(
                     child: Text(
                       "Log In",
@@ -147,7 +160,6 @@ class LoginPageState extends State<LoginPage> {
                       borderRadius: BorderRadius.circular(30.0),
                     ),
                   ),
-                  Spacer(),
                 ],
               ),
             ),
@@ -156,7 +168,6 @@ class LoginPageState extends State<LoginPage> {
                 left: MediaQuery.of(context).size.height * 0.03,
                 right: MediaQuery.of(context).size.height * 0.03),
             width: MediaQuery.of(context).size.width * 0.8,
-            height: 280,
           ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(30.0),
@@ -173,14 +184,21 @@ class LoginPageState extends State<LoginPage> {
       setState(() {
         loading = true;
       });
-      
       FirebaseAuth auth = FirebaseAuth.instance;
-      AuthResult result = await auth.signInWithEmailAndPassword(
-          email: email, password: password);
+      var user = await auth.currentUser();
+      if (auth != null && await auth.currentUser() != null) {
+        globals.firebaseAuth = auth;
+        globals.firebaseUser = await auth.currentUser();
+      } else {
+        AuthResult result = await auth.signInWithEmailAndPassword(
+            email: email, password: password);
+        globals.firebaseUser = result.user;
+      }
+
       setState(() {
         loading = false;
       });
-      globals.firebaseUser = result.user;
+
       globals.firebaseAuth = auth;
       globals.loadedCollections = Map();
       Navigator.of(context).pushReplacement(MaterialPageRoute(

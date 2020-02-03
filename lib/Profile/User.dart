@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:pearawards/Search%20Page/SearchPage.dart';
 import 'package:pearawards/Utils/Utils.dart';
 
 class User {
@@ -25,14 +24,22 @@ class UserTab extends StatefulWidget {
 
 class UserTabState extends State<UserTab> {
   UserTabState(Future<User> userFetch) {
-    loadUser(userFetch);
+    if (mounted) {
+      if (widget.user == null) {
+        loadUser(userFetch);
+      } else {
+        user = widget.user;
+      }
+    }
   }
   User user;
   bool loaded = false;
   @override
   void initState() {
     super.initState();
-    user = widget.user;
+    if (widget.user != null) {
+      user = widget.user;
+    }
   }
 
   loadUser(Future<User> userFetch) async {
@@ -45,6 +52,9 @@ class UserTabState extends State<UserTab> {
 
   @override
   Widget build(BuildContext context) {
+    if(user == null) {
+      loadUser(getUserFromUID(widget.uid));
+    }
     return Container(
       height: 70,
       child: RaisedButton(
@@ -111,6 +121,9 @@ StreamBuilder<QuerySnapshot> userStream(String searchString) {
         return SliverList(
           delegate: SliverChildBuilderDelegate((context, index) {
             return UserTab(
+                onPressed: () {
+                  visitUserPage(users[index].documentID, context);
+                },
                 uid: users[index].documentID,
                 user: User(
                     displayName: users[index].data['display'],

@@ -5,6 +5,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:pearawards/Assets/ExtraIcons.dart';
 import 'package:flutter/material.dart';
 import 'package:pearawards/Awards/TagUser.dart';
+import 'package:pearawards/Profile/User.dart';
 import 'package:pearawards/Utils/Converter.dart';
 import 'package:pearawards/Utils/DisplayTools.dart';
 import 'package:pearawards/Utils/Globals.dart' as globals;
@@ -41,7 +42,9 @@ class AwardLoader {
       isLoaded = true;
       award.refresh = refresh;
     } else if (lastEdit != null &&
+        globals.loadedAwards != null &&
         globals.loadedAwards[reference.documentID] != null &&
+        globals.loadedAwards[reference.documentID].lastLoaded != null &&
         globals.loadedAwards[reference.documentID].lastLoaded > lastEdit) {
       award = globals.loadedAwards[reference.documentID];
       isLoaded = true;
@@ -68,6 +71,7 @@ class AwardLoader {
     await reference.get().then((doc) {
       if (pointer != null && !awardFromSnapshot(doc)) {
         pointer.delete();
+        globals.loadedAwards.remove(pointer.documentID);
       }
       isLoaded = true;
       if (numLoaded != null) {
@@ -84,9 +88,15 @@ class AwardLoader {
       award = Award.fromMap(doc.data);
       award.likes = doc.data['likes'];
       award.refresh = refresh;
+      if (doc.data["likers"] != null) {
+        award.liked = doc.data["likers"][globals.firebaseUser.uid] == true;
+      }
       award.timestamp = doc.data['timestamp'];
       award.docPath = doc.reference.path;
       award.lastLoaded = DateTime.now().microsecondsSinceEpoch;
+      if (globals.loadedAwards == null) {
+        globals.loadedAwards = {};
+      }
       globals.loadedAwards[award.hash.toString()] = award;
       return true;
     } else {
@@ -97,8 +107,8 @@ class AwardLoader {
   Widget buildCard(BuildContext context, bool tappable, bool filter) {
     if (filter &&
         (!isLoaded ||
-            !award
-                .excludesPattern('poo|fuck|Jesus|God|dick|shit|fleshlight'))) {
+            !award.excludesPattern(
+                'poo|fuck|Jesus|God|dick|shit|fleshlight|tap|vodka|suicide|bernie'))) {
       return Container();
     }
     return AwardCard(
@@ -120,108 +130,121 @@ class AwardCard extends StatefulWidget {
 }
 
 class _AwardCardState extends State<AwardCard> {
-
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: CustomPaint(
-        painter: TabPainter(
-            fromLeft: 0.4,
-            height: 36,
-            color: widget.award.fromDoc ? Colors.grey[300] : Colors.green[100]),
-        child: FlatButton(
-          splashColor: Colors.transparent,
-          //highlightColor: Colors.transparent,
-          onPressed: widget.tappable
-              ? () {
-                  DateTime time = DateTime.fromMicrosecondsSinceEpoch(
-                      widget.award.timestamp);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => AwardPage(
-                          award: widget.award,
-                          title: widget.award.author.name +
-                              (widget.award.showYear
-                                  ? ''
-                                  : ', ${formatDateTimeAward(time)}')),
-                    ),
-                  );
-                }
-              : null,
-          child: Column(
-            children: [
-              widget.award,
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: <Widget>[
-                  SizedBox(
-                    child: IconButton(
-                      splashColor: Colors.transparent,
-                      highlightColor: Colors.transparent,
-                      icon: Icon(
-                        widget.award.liked
-                            ? ExtraIcons.heart
-                            : ExtraIcons.heart_empty,
-                        color: Colors.green[600],
-                      ),
-                      onPressed: () {
-                        if (!widget.award.liked) {
-                          if (globals.likeRequests[widget.award.docPath] ==
-                              false) {
-                            globals.likeRequests.remove(widget.award.docPath);
-                          } else {
-                            globals.likeRequests[widget.award.docPath] = true;
-                            massUploadLikes();
-                          }
-                          widget.award.liked = true;
-                          widget.award.likes += 1;
-                        } else if (widget.award.liked) {
-                          if (globals.likeRequests[widget.award.docPath] ==
-                              true) {
-                            globals.likeRequests.remove(widget.award.docPath);
-                          } else {
-                            globals.likeRequests[widget.award.docPath] = false;
-                            massUploadLikes();
-                          }
-                          widget.award.liked = false;
-                          widget.award.likes -= 1;
-                        }
-                        setState(() {});
-                      },
-                    ),
-                    width: 38,
-                  ),
-                  Container(
-                    width: 30,
-                    child: Text(
-                      widget.award.likes.toString(),
-                      style: TextStyle(fontSize: 18, color: Colors.green[600]),
-                    ),
-                  ),
-                  Container(
-                    child: Icon(
-                      ExtraIcons.comment_empty,
-                      color: Colors.green[600],
-                    ),
-                    width: 38,
-                    padding: EdgeInsets.only(bottom: 4),
-                  ),
-                  Padding(
-                    child: Text(
-                      widget.award.likes.toString(),
-                      style: TextStyle(fontSize: 18, color: Colors.green[600]),
-                    ),
-                    padding: EdgeInsets.only(right: 22),
-                  ),
-                ],
-              )
-            ],
-          ),
-        ),
-      ),
-      margin: EdgeInsets.only(left: 5.0, right: 5.0, top: 5),
-    );
+    return widget.award == null
+        ? Container()
+        : Card(
+            child: CustomPaint(
+              painter: TabPainter(
+                  fromLeft: 0.4,
+                  height: 36,
+                  color: widget.award.fromDoc
+                      ? Colors.grey[300]
+                      : Colors.green[100]),
+              child: FlatButton(
+                splashColor: Colors.transparent,
+                //highlightColor: Colors.transparent,
+                onPressed: widget.tappable
+                    ? () {
+                        DateTime time = DateTime.fromMicrosecondsSinceEpoch(
+                            widget.award.timestamp);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AwardPage(
+                                award: widget.award,
+                                title: widget.award.author.name +
+                                    (widget.award.showYear
+                                        ? ''
+                                        : ', ${formatDateTimeAward(time)}')),
+                          ),
+                        );
+                      }
+                    : null,
+                child: Column(
+                  children: [
+                    widget.award,
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: <Widget>[
+                        SizedBox(
+                          child: IconButton(
+                            splashColor: Colors.transparent,
+                            highlightColor: Colors.transparent,
+                            icon: Icon(
+                              widget.award.liked
+                                  ? ExtraIcons.heart
+                                  : ExtraIcons.heart_empty,
+                              color: Colors.green[600],
+                            ),
+                            onPressed: () {
+                              if (!widget.award.liked) {
+                                if (globals
+                                        .likeRequests[widget.award.docPath] ==
+                                    false) {
+                                  globals.likeRequests
+                                      .remove(widget.award.docPath);
+                                } else {
+                                  globals.likeRequests[widget.award.docPath] =
+                                      true;
+                                  massUploadLikes();
+                                }
+                                widget.award.liked = true;
+                                widget.award.likes += 1;
+                              } else if (widget.award.liked) {
+                                if (globals
+                                        .likeRequests[widget.award.docPath] ==
+                                    true) {
+                                  globals.likeRequests
+                                      .remove(widget.award.docPath);
+                                } else {
+                                  globals.likeRequests[widget.award.docPath] =
+                                      false;
+                                  massUploadLikes();
+                                }
+                                widget.award.liked = false;
+                                widget.award.likes -= 1;
+                              }
+                              setState(() {});
+                            },
+                          ),
+                          width: 38,
+                        ),
+                        Container(
+                          width: 30,
+                          child: Text(
+                            widget.award.likes.toString(),
+                            style: TextStyle(
+                                fontSize: 18, color: Colors.green[600]),
+                          ),
+                        ),
+                        Container(
+                          child: Icon(
+                            ExtraIcons.comment_empty,
+                            color: Colors.green[600],
+                          ),
+                          width: 38,
+                          padding: EdgeInsets.only(bottom: 4),
+                        ),
+                        Padding(
+                          child: Text(
+                            widget.award.comments == null
+                                ? "0"
+                                : widget.award.comments.toString(),
+                            style: TextStyle(
+                                fontSize: 18, color: Colors.green[600]),
+                          ),
+                          padding: EdgeInsets.only(right: 22),
+                        ),
+                      ],
+                    )
+                  ],
+                ),
+              ),
+            ),
+            margin: EdgeInsets.only(left: 5.0, right: 5.0, top: 5),
+          );
   }
 }
 
@@ -269,7 +292,11 @@ class Award extends StatelessWidget {
       this.showYear = false,
       this.nsfw = false,
       this.liked = false,
-      this.docPath}) {
+      this.likes = 0,
+      this.comments = 0,
+      this.docPath,
+      this.lastLoaded,
+      this.people}) {
     for (Line l in quotes) {
       hash ^= l.getHash();
     }
@@ -280,39 +307,58 @@ class Award extends StatelessWidget {
       return null;
     }
     return Award(
-      fromDoc: map['fromdoc'],
-      showYear: map['showYear'],
-      timestamp: map['timestamp'],
-      quotes: q.map(
-        (quote) {
-          return Line.fromMap(quote);
-        },
-      ).toList(),
-      numQuotes: map['lines'].length,
-      author: Name.fromMap(
-        map['author'],
-      ),
-      nsfw: map['nsfw'],
-      docPath: map['docPath'],
-    );
+        people: map['people'],
+        fromDoc: map['fromdoc'],
+        showYear: map['showYear'],
+        timestamp: map['timestamp'],
+        quotes: q.map(
+          (quote) {
+            if (quote['name'] != null && quote['name'] != false) {
+              Map person;
+              try{person = map['people'][quote['name']];} catch (e) {
+                print(map);
+                print(quote);
+              }
+              
+              quote['name'] =
+                  User(uid: person['uid'], displayName: person['name']);
+            }
+            return Line.fromMap(quote);
+          },
+        ).toList(),
+        numQuotes: map['lines'].length,
+        author: Name.fromUser(
+          User(displayName: map['author']['name'], uid: map['author']['uid']),
+        ),
+        nsfw: map['nsfw'],
+        docPath: map['docPath'],
+        likes: map["likes"] == null ? 0 : map["likes"],
+        liked: map["liked"] == null ? false : map["liked"],
+        lastLoaded: map['lastLoaded'],
+        comments: map["comments"] == null ? 0 : map["comments"]);
   }
 
   int timestamp;
   final int numQuotes;
   final Name author;
   final List<Line> quotes;
+  final List people;
   final bool fromDoc;
   bool nsfw;
   bool showYear;
   bool liked;
   String docPath;
   int likes = 0;
+  int comments = 0;
   int hash = 0;
   int lastLoaded = 0;
   Function refresh;
 
   bool contains(String filter) {
     for (Line l in quotes) {
+      if(l.message == null) {
+        print('error');
+      }
       if (l.message.toLowerCase().contains(filter.toLowerCase())) {
         return true;
       }
@@ -438,7 +484,7 @@ class Quote extends Line {
   factory Quote.fromMap(Map map) {
     return Quote(
       message: map['quote'],
-      name: Name.fromMap(map['name']),
+      name: Name.fromUser(map['name']),
     );
   }
   final String message;
@@ -523,10 +569,10 @@ class Context extends Line {
 class Name extends StatelessWidget {
   Name({this.name, this.uid});
 
-  factory Name.fromMap(Map map) {
+  factory Name.fromUser(User user) {
     return Name(
-      name: map['name'],
-      uid: map['uid'],
+      name: user.displayName,
+      uid: user.uid,
     );
   }
   String name;

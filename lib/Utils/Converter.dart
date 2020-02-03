@@ -43,15 +43,17 @@ Future<Result> retrieveAwards(String url) async {
     return result;
   }
 
-  result.awards = await convertAwards(file);
+  result.awards = await convertAwards(file, url);
   result.title = awardTitle;
   return result;
 }
 
-Future<List<Award>> convertAwards(String file) async {
+Future<List<Award>> convertAwards(String file, String url) async {
   int currentYear = 2013;
-
-  List<Award> awards = <Award>[];
+  List<Map> awards = [];
+  Map currentAward = {};
+  Map currentLine = {};
+  List<Map> lines = [];
   List<Line> quotes = <Line>[];
   List<String> quoteLines = <String>[];
   List<Name> quoteNames = <Name>[];
@@ -307,16 +309,34 @@ Future<List<Award>> convertAwards(String file) async {
 
       case CurrentState.award:
         if (quotes.length != 0) {
-          awards.add(Award(
-              timestamp:
-                  DateTime(currentYear).microsecondsSinceEpoch + awards.length,
-              quotes: quotes,
-              numQuotes: quotes.length,
-              fromDoc: true,
-              showYear: true,
-              author: Name(
-                name: awardTitle,
-              )));
+          List people = [];
+          List quoteMaps = [];
+          for (Line l in quotes) {
+            if (l is Quote) {
+              Quote q = l;
+              if (people.indexOf(q.name.name.trim()) >= 0) {
+                quoteMaps.add({
+                  "quote": q.message,
+                  "name": people.indexOf(q.name.name.trim())
+                });
+              } else {
+                people.add({"name": q.name.name.trim(), "uid": null});
+                quoteMaps.add({"quote": q.message, "name": people.length - 1});
+              }
+            } else {
+              quoteMaps.add({"context": l.message});
+            }
+          }
+          Map<String, dynamic> newAward = {
+            "timestamp":
+                DateTime(currentYear).microsecondsSinceEpoch + awards.length,
+            "showYear": true,
+            "people": people,
+            "lines": quoteMaps,
+            "fromdoc": true,
+            "author": {"name": "Google Doc", "url": url}
+          };
+          awards.add(newAward);
         }
         quotes = <Line>[];
 
@@ -328,7 +348,9 @@ Future<List<Award>> convertAwards(String file) async {
         break;
     }
   }
-  return awards;
+  return awards.map((amap) {
+    return Award.fromMap(amap);
+  }).toList();
 }
 
 /*void printValidString(std::ofstream out, std::string s) {
@@ -348,19 +370,28 @@ bool isValidCharacter(String c) {
 }
 
 Map<String, dynamic> awardToMap(Award award) {
+  Map<String, int> nameMap = Map.fromIterables(award.people.map((map) {
+    return map["name"];
+  }), award.people.map((map) {
+    return award.people.indexOf(map);
+  }));
+  Map<String, int> uidMap = Map.fromIterables(award.people.map((map) {
+    return map["uid"];
+  }), award.people.map((map) {
+    return award.people.indexOf(map);
+  }));
   Map<String, dynamic> map = Map();
   map["lines"] = List<Map>();
   for (Line l in award.quotes) {
     Map lineMap = Map();
     if (l.isQuote()) {
       Quote q = l as Quote;
-      Map nameMap = Map();
-      lineMap["name"] = nameMap;
-      if (q.name != null) {
-        nameMap["name"] = q.name.name;
-        if (q.name.uid != null) {
-          nameMap["uid"] = q.name.uid;
-        }
+      if (q.name.uid != null && uidMap[q.name.uid] != null) {
+        lineMap["name"] = uidMap[q.name.uid];
+      } else if (nameMap[q.name.name] != null) {
+        lineMap["name"] = nameMap[q.name.name];
+      } else {
+        print("error");
       }
 
       lineMap["quote"] = q.message;
@@ -369,6 +400,7 @@ Map<String, dynamic> awardToMap(Award award) {
     }
     map["lines"].add(lineMap);
   }
+  map["people"] = award.people;
   Map author = Map();
   author["name"] = award.author.name;
   if (award.author.uid != null) {
@@ -380,5 +412,8 @@ Map<String, dynamic> awardToMap(Award award) {
   map["showYear"] = award.showYear;
   map["nsfw"] = award.nsfw;
   map["docPath"] = award.docPath;
+  map["likes"] = award.likes;
+  map["liked"] = award.liked;
+  map["lastLoaded"] = award.lastLoaded;
   return map;
 }

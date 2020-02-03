@@ -145,6 +145,8 @@ class _AwardPageState extends State<AwardPage> {
       "user": globals.firebaseUser.uid,
       "timestamp": DateTime.now().microsecondsSinceEpoch
     });
+    widget.award.comments++;
+    globals.loadedAwards[widget.award.hash].comments = widget.award.comments;
     
   }
   

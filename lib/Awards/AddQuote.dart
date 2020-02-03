@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -31,17 +32,20 @@ class _AddQuoteState extends State<AddQuote> {
   String errorMessage = "";
   ItemScrollController scrollController = ItemScrollController();
   List<DocumentSnapshot> users = [];
-  Map friends;
+  GridView userTiles;
+  Map following;
 
   @override
   void initState() {
     search = "";
     var newForm = NewLineForm(
-        index: lines.length,
-        scrollController: scrollController,
-        searchForName: () {
-          setState(() {});
-        });
+      index: lines.length,
+      scrollController: scrollController,
+      searchForName: () {
+        loadUsers();
+        setState(() {});
+      },
+    );
     newForm.remove = () {
       lines.remove(newForm);
       setState(() {});
@@ -51,13 +55,57 @@ class _AddQuoteState extends State<AddQuote> {
     lines = [newForm];
   }
 
-  loadFriends() async {
+  loadUsers() async {
+    if (search == null || search == "") {
+      users = [];
+    } else {
+      users = await Firestore.instance
+          .collection('users')
+          .where('display_insensitive',
+              isGreaterThanOrEqualTo: search.toUpperCase())
+          .where('display_insensitive',
+              isLessThan: incrementString(search.toUpperCase()))
+          .limit(50)
+          .getDocuments()
+          .then((docs) {
+        return docs.documents;
+      });
+    }
+    userTiles = GridView(
+        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 500.0, childAspectRatio: 6.0));
+    setState(() {});
+    Timer(Duration(milliseconds: 10), () {
+      userTiles =GridView(
+        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 500.0, childAspectRatio: 6.0),
+        children: List.generate(users.length, (index) {
+          DocumentSnapshot user = users[index];
+          return UserTab(
+            user: User(
+                displayName: user.data["display"],
+                imageUrl: user.data["image"],
+                uid: user.documentID),
+            onPressed: () {
+              lines[editingIndex].uid = user.documentID;
+              lines[editingIndex].name = user.data["display"];
+              reloadLineForm();
+              search = "";
+            },
+          );
+        }),
+      );
+      setState(() {});
+    });
+  }
+
+  loadFollowing() async {
     var me = await Firestore.instance
         .document('users/${globals.firebaseUser.uid}')
         .get();
-    friends = me.data['friends'];
-    if (friends == null) {
-      friends = Map();
+    following = me.data['following'];
+    if (following == null) {
+      following = Map();
     }
     setState(() {});
   }
@@ -137,6 +185,7 @@ class _AddQuoteState extends State<AddQuote> {
                                   index: lines.length,
                                   scrollController: scrollController,
                                   searchForName: () {
+                                    loadUsers();
                                     setState(() {});
                                   },
                                 );
@@ -187,49 +236,11 @@ class _AddQuoteState extends State<AddQuote> {
                           );
                   })),
           search == null || search == ""
-                ? Container()
-                : Expanded(
-            /*height: MediaQuery.of(context).size.height * 0.5,*/
-            child: StreamBuilder(
-                stream: Firestore.instance
-                    .collection('users')
-                    .where('display_insensitive',
-                        isGreaterThanOrEqualTo: search.toUpperCase())
-                    .where('display_insensitive',
-                        isLessThan: incrementString(search.toUpperCase()))
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  var data = snapshot.data;
-
-                  if (data != null) {
-                    users = snapshot.data.documents;
-                  }
-                  return search == null || search == ""
-                      ? Container()
-                      
-                      : GridView(
-                          gridDelegate:
-                              SliverGridDelegateWithMaxCrossAxisExtent(
-                                  maxCrossAxisExtent: 500.0,
-                                  childAspectRatio: 6.0),
-                          children: List.generate(users.length, (index) {
-                            DocumentSnapshot user = users[index];
-                            return UserTab(
-                              user: User(
-                                  displayName: user.data["display"],
-                                  imageUrl: user.data["image"],
-                                  uid: user.documentID),
-                              onPressed: () {
-                                lines[editingIndex].uid = user.documentID;
-                                lines[editingIndex].name = user.data["display"];
-                                reloadLineForm();
-                                search = "";
-                                setState(() {});
-                              },
-                            );
-                          }));
-                }),
-          )
+              ? Container()
+              : Expanded(
+                  /*height: MediaQuery.of(context).size.height * 0.5,*/
+                  child:
+                      userTiles == null || search == null || search == "" ? Container() : userTiles)
         ]));
   }
 }
@@ -511,4 +522,3 @@ class NewLineFormState extends State<NewLineForm> {
     ]);
   }
 }
-

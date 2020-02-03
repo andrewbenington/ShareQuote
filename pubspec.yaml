@@ -36,6 +36,7 @@ dependencies:
   shared_preferences: ^0.4.3
   provider: ^4.0.1
   flutter_widgets: ^0.1.9
+  path_provider:
 
 dev_dependencies:
   flutter_test:

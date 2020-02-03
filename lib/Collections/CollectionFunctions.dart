@@ -5,48 +5,34 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'Collection.dart';
 
-Future<bool> createCollection(FirebaseUser user, String name) async {
-  var docRef = Firestore.instance.document('users/${user.uid}');
-
-  DocumentSnapshot userSnap = await docRef.get();
-
-  if (!userSnap.exists) {
-    Firestore.instance
-        .document('users/${user.uid}')
-        .setData({"display": user.displayName});
-  }
+createCollection(String name) async {
   DocumentReference document =
       Firestore.instance.collection('collections').document();
   await document.setData({
     "lastEdit": DateTime.now().microsecondsSinceEpoch,
     "name": name,
-    "owner": user.uid
+    "owner": globals.firebaseUser.uid
   });
   globals.loadedCollections[document.documentID] = Collection(
       docRef: document,
-      owner: user.uid,
+      owner: globals.firebaseUser.uid,
       title: name,
       lastEdited: DateTime.now().microsecondsSinceEpoch);
-  await addCollectionReference(user, document, name, null);
+  await addCollectionReference(document, name, null);
 }
 
-Future<void> addCollectionReference(FirebaseUser user,
+Future<void> addCollectionReference(
     DocumentReference document, String title, Function onComplete) async {
-  var docRef = Firestore.instance.document('users/${user.uid}');
+  var docRef = Firestore.instance.document('users/${globals.firebaseUser.uid}');
 
   docRef.get().then((doc) {
-    if (!doc.exists) {
-      Firestore.instance
-          .document('users/${user.uid}')
-          .setData({"display": user.displayName});
-    }
     var coll = Firestore.instance
-        .collection('users/${user.uid}/collections')
+        .collection('users/${globals.firebaseUser.uid}/collections')
         .document();
     coll.get().then((doc) {
       if (!doc.exists) {
         Firestore.instance
-            .document('users/${user.uid}/collections/${document.documentID}')
+            .document('users/${globals.firebaseUser.uid}/collections/${document.documentID}')
             .setData({
           "reference": document,
           "name": title,
@@ -57,17 +43,16 @@ Future<void> addCollectionReference(FirebaseUser user,
         docRef: document,
         lastEdited: doc.data["lastEdit"],
         title: title,
-        owner: doc.data["owner"]);
+        owner: doc.documentID);
     if (onComplete != null) {
       onComplete();
     }
   });
 }
 
-Future<void> removeCollectionReference(
-    FirebaseUser user, DocumentReference document) async {
+Future<void> removeCollectionReference(DocumentReference document) async {
   Firestore.instance
-      .document('users/${user.uid}/collections/${document.documentID}')
+      .document('users/${globals.firebaseUser.uid}/collections/${document.documentID}')
       .delete();
   deleteAwardsFromMemory(document.documentID);
   globals.loadedCollections.remove(document.documentID);

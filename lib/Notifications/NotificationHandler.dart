@@ -28,7 +28,11 @@ class _NotificationHandlerState extends State<NotificationHandler> {
         saveToken();
       });
 
-      _fcm.requestNotificationPermissions(IosNotificationSettings());
+      try {
+        _fcm.requestNotificationPermissions(IosNotificationSettings());
+      } catch (error) {
+        print(error);
+      }
     } else {
       saveToken();
     }
@@ -55,8 +59,8 @@ class _NotificationHandlerState extends State<NotificationHandler> {
   void saveToken() async {
     String token = await _fcm.getToken();
     Firestore.instance
-        .document('users/${globals.firebaseUser.uid}')
-        .updateData({"token": token});
+        .document('users_private/${globals.firebaseUser.uid}')
+        .setData({"token": token}, merge: true);
     print("InstanceID: $token");
   }
 

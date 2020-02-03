@@ -59,6 +59,9 @@ void sendNotification(String uid, Map<String, dynamic> fields) async {
 
 Future<User> getUserFromUID(String uid) async {
   DocumentSnapshot snap = await Firestore.instance.document('users/$uid').get();
+  if(uid == null) {
+    return null;
+  }
   return User(
       displayName: snap.data["display"],
       imageUrl: snap.data["image"],
