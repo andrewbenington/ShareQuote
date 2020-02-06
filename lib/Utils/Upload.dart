@@ -80,6 +80,20 @@ Future<int> uploadAward(String uploadPath, Award award,
   return 0;
 }
 
+setTagReference(String path, String uid, int timestamp, String hash) async {
+  HttpsCallable post =
+      CloudFunctions.instance.getHttpsCallable(functionName: "taggedPost");
+  await post.call({
+    "uid": uid,
+    "timestamp": timestamp,
+    "award": path,
+    "hash" : hash
+  }).catchError((error) {
+    print(error);
+    return;
+  });
+}
+
 addLike(DocumentReference award, Function onFinished, bool remove) async {
   if (onFinished == null) {
     onFinished = () {};

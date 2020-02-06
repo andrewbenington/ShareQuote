@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pearawards/Utils/Globals.dart' as globals;
 
 class TabPainter extends CustomPainter {
   TabPainter({this.fromLeft, this.height, this.color});
@@ -32,7 +33,7 @@ class CornersPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     var paint = Paint();
-    paint.color = Colors.grey[300];
+    paint.color = globals.theme.primaryColor.withOpacity(0.2);
     paint.style = PaintingStyle.fill;
 
     var path = Path();

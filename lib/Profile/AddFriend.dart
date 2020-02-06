@@ -36,6 +36,7 @@ class _AddFriendState extends State<AddFriend> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: globals.theme.primaryColor,
         leading: IconButton(
           icon: Icon(Icons.close, size: 30),
           onPressed: () {
@@ -44,7 +45,7 @@ class _AddFriendState extends State<AddFriend> {
         ),
         title: Text('Recommendations'),
       ),
-      backgroundColor: Colors.green[200],
+      backgroundColor: globals.theme.backgroundColor,
       body: Stack(children: [
         StreamBuilder(
             stream: Firestore.instance.collection('users').snapshots(),
@@ -86,56 +87,63 @@ class _AddFriendState extends State<AddFriend> {
     String imageURL,
   ) {
     return Card(
-      child: Row(children: <Widget>[
-        Container(
-          width: 50.0,
-          height: 50.0,
-          margin: EdgeInsets.all(5.0),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            image: DecorationImage(
-              fit: BoxFit.cover,
-              image: NetworkImage(imageURL),
+      child: Container(
+        child: Row(children: <Widget>[
+          Container(
+            width: 50.0,
+            height: 50.0,
+            margin: EdgeInsets.all(5.0),
+            
+            decoration: imageURL == null || imageURL == "" ? BoxDecoration(
+              shape: BoxShape.circle,
+              color: globals.theme.primaryColor
+            ) : BoxDecoration(
+              shape: BoxShape.circle,
+              image: DecorationImage(
+                fit: BoxFit.cover,
+                image: NetworkImage(imageURL),
+              ),
             ),
           ),
-        ),
-        Expanded(
-          child: FractionallySizedBox(
-            widthFactor: 1,
-            child: Container(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: RichText(
-                  text: TextSpan(
-                    text: name,
-                    style: TextStyle(fontSize: 20.0, color: Colors.black),
+          Expanded(
+            child: FractionallySizedBox(
+              widthFactor: 1,
+              child: Container(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: RichText(
+                    text: TextSpan(
+                      text: name,
+                      style: TextStyle(fontSize: 20.0, color: Colors.black),
+                    ),
                   ),
                 ),
-              ),
-              padding: EdgeInsets.symmetric(horizontal: 10.0),
-            ),
-          ),
-        ),
-        Container(
-          child: ButtonTheme(
-            child: RaisedButton(
-              child: Icon(
-                justFollowed[uid] != null ? Icons.check : Icons.add,
-                color: Colors.white,
-              ),
-              color: Colors.green,
-              elevation: 3.0,
-              onPressed: () {
-                sendFollowRequest(uid);
-              },
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30.0),
+                padding: EdgeInsets.symmetric(horizontal: 10.0),
               ),
             ),
           ),
-          padding: EdgeInsets.only(right: 15.0, left: 15.0),
-        ),
-      ]),
+          Container(
+            child: ButtonTheme(
+              child: RaisedButton(
+                child: Icon(
+                  justFollowed[uid] != null ? Icons.check : Icons.add,
+                  color: globals.theme.backgroundColor,
+                ),
+                color: globals.theme.primaryColor,
+                elevation: 3.0,
+                onPressed: () {
+                  sendFollowRequest(uid);
+                },
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30.0),
+                ),
+              ),
+            ),
+            padding: EdgeInsets.only(right: 15.0, left: 15.0),
+          ),
+        ]),
+        height: 60.0,
+      ),
       margin: EdgeInsets.only(top: 8.0, left: 8.0, right: 8.0),
     );
   }
@@ -146,7 +154,7 @@ class _AddFriendState extends State<AddFriend> {
     HttpsCallable post = CloudFunctions.instance
         .getHttpsCallable(functionName: "sendFollowRequest");
     var result = await post.call({
-      "remove": widget.following.indexOf(globals.firebaseUser.uid) >=0
+      "remove": widget.following.indexOf(globals.firebaseUser.uid) >= 0
           ? "true"
           : "false",
       "from": globals.firebaseUser.uid,

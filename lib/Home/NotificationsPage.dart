@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:pearawards/Assets/ExtraIcons.dart';
 import 'package:pearawards/Awards/Award.dart';
 import 'package:pearawards/Awards/AwardPage.dart';
+import 'package:pearawards/Collections/Collection.dart';
+import 'package:pearawards/Collections/CollectionFunctions.dart';
 import 'package:pearawards/Profile/ProfilePage.dart';
 import 'package:pearawards/Utils/DisplayTools.dart';
 import 'package:pearawards/Utils/Globals.dart' as globals;
@@ -59,7 +61,7 @@ class NotificationsPageState extends State<NotificationsPage> {
       1: '${data['name']} commented on an award you gave',
       2: '${data['name']} gave you an award!',
       3: '${data['name']} followed you',
-      4: '${data['name']} accepted your friend request',
+      4: '${data['name']} invited you to join the collection \'${data['title']}\'',
       5: '${data['name']} liked an award you received',
       6: '${data['name']} commented on an award you received'
     };
@@ -68,9 +70,31 @@ class NotificationsPageState extends State<NotificationsPage> {
       1: Icon(ExtraIcons.comment),
       2: Icon(Icons.bookmark),
       3: Icon(Icons.person),
-      4: Icon(Icons.error),
+      4: Icon(Icons.collections_bookmark),
       5: Icon(ExtraIcons.heart),
       6: Icon(ExtraIcons.comment)
+    };
+
+    Map<int, Function> functions = {
+      3: () {
+        visitUserPage(data['uid'], context);
+        
+      },
+      4: () async {
+        DocumentSnapshot document =
+            await Firestore.instance.document(data['path']).get();
+        if (!document.exists) {
+          Firestore.instance.document(data['path']).delete();
+          globals.loadedCollections.remove(document.documentID);
+          return;
+        }
+        Collection c = Collection(
+            docRef: document.reference,
+            title: document.data['name'],
+            owner: document.data['owner'],
+            lastEdited: document.data['lastEdit']);
+        pushCollectionStream(context, c, () {});
+      }
     };
     return ListTile(
         title: Text(
@@ -89,12 +113,10 @@ class NotificationsPageState extends State<NotificationsPage> {
                         : FontWeight.bold),
               )
             : Text(""),
-        onTap: data['notification'] != 3
-            ? () {
-                loadAndVisitAward(data['award']);
-              }
+        onTap: functions[data['notification']] != null
+            ? functions[data['notification']]
             : () {
-                visitUserPage(data['uid'], context);
+                loadAndVisitAward(Firestore.instance.document(data['award']));
               },
         trailing: icons[data['notification']]);
   }

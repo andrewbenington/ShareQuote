@@ -76,7 +76,7 @@ class _AddQuoteState extends State<AddQuote> {
             maxCrossAxisExtent: 500.0, childAspectRatio: 6.0));
     setState(() {});
     Timer(Duration(milliseconds: 10), () {
-      userTiles =GridView(
+      userTiles = GridView(
         gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
             maxCrossAxisExtent: 500.0, childAspectRatio: 6.0),
         children: List.generate(users.length, (index) {
@@ -119,7 +119,7 @@ class _AddQuoteState extends State<AddQuote> {
                 icon: Icon(Icons.check, size: 30),
                 onPressed: () {
                   List<Quote> quotes = [];
-                  List<String> uids = [];
+                  Map people = {};
                   for (NewLineForm form in lines) {
                     if (form.name != null && form.message != null) {
                       quotes.add(Quote(
@@ -130,9 +130,18 @@ class _AddQuoteState extends State<AddQuote> {
                         ),
                       ));
                     }
+                    if (form.uid == null) {
+                      people[form.name.trim()] = {
+                        "name": form.name,
+                        "uid": form.uid
+                      };
+                    } else {
+                      people[form.uid] = {"name": form.name, "uid": form.uid};
+                    }
                   }
                   if (quotes.length > 0) {
                     Award a = Award(
+                        people: people.values.toList(),
                         quotes: quotes,
                         timestamp: DateTime.now().microsecondsSinceEpoch,
                         author: Name(
@@ -159,7 +168,7 @@ class _AddQuoteState extends State<AddQuote> {
           ),
           title: Text("Add Award"),
         ),
-        backgroundColor: Colors.green[200],
+        backgroundColor: globals.theme.backgroundColor,
         body: Column(children: <Widget>[
           Expanded(
               child: ScrollablePositionedList.builder(
@@ -176,9 +185,9 @@ class _AddQuoteState extends State<AddQuote> {
                                 style: TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.white),
+                                    color: globals.theme.textColor),
                               ),
-                              color: Colors.green,
+                              color: globals.theme.primaryColor,
                               elevation: 3.0,
                               onPressed: () {
                                 var newForm = NewLineForm(
@@ -239,8 +248,9 @@ class _AddQuoteState extends State<AddQuote> {
               ? Container()
               : Expanded(
                   /*height: MediaQuery.of(context).size.height * 0.5,*/
-                  child:
-                      userTiles == null || search == null || search == "" ? Container() : userTiles)
+                  child: userTiles == null || search == null || search == ""
+                      ? Container()
+                      : userTiles)
         ]));
   }
 }
@@ -263,7 +273,7 @@ class NewLineForm extends StatefulWidget {
   Function remove;
   bool editing = true;
   final Function searchForName;
-  Color color = Colors.white;
+  Color color = globals.theme.backgroundColor;
 
   @override
   State<StatefulWidget> createState() {
@@ -277,10 +287,10 @@ class NewLineFormState extends State<NewLineForm> {
     widget.index = lines.indexOf(widget);
     return Stack(children: <Widget>[
       Card(
-        color: widget.color,
+        color: globals.theme.cardColor,
         child: CustomPaint(
             painter: TabPainter(
-                fromLeft: 0.15, height: 36, color: Colors.green[100]),
+                fromLeft: 0.15, height: 36, color: globals.theme.lightPrimary),
             child: widget.editing
                 ? Column(
                     children: <Widget>[
@@ -294,7 +304,7 @@ class NewLineFormState extends State<NewLineForm> {
                                     text: (widget.index + 1).toString(),
                                     style: TextStyle(
                                         fontSize: 17.0,
-                                        color: Colors.green[800],
+                                        color: globals.theme.textColor,
                                         fontWeight: FontWeight.bold),
                                   ),
                                 ),
@@ -304,6 +314,8 @@ class NewLineFormState extends State<NewLineForm> {
                               ),
                               Padding(
                                   child: TextFormField(
+                                    style: TextStyle(
+                                        color: globals.theme.textColor),
                                     onTap: () {
                                       editingIndex = widget.index;
                                       widget.scrollController.scrollTo(
@@ -323,14 +335,22 @@ class NewLineFormState extends State<NewLineForm> {
                                             vertical: 16.0, horizontal: 20),
                                         hintStyle: TextStyle(
                                             fontWeight: FontWeight.bold,
-                                            fontSize: 20),
+                                            fontSize: 20,
+                                            color: globals.theme.textColor),
                                         hintText: "Quote",
                                         border: OutlineInputBorder(
                                             borderSide: BorderSide(
-                                                color: Colors.green, width: 2)),
+                                                color:
+                                                    globals.theme.primaryColor,
+                                                width: 2)),
                                         enabledBorder: OutlineInputBorder(
                                             borderSide: BorderSide(
-                                                color: Colors.green,
+                                                color:
+                                                    globals.theme.primaryColor,
+                                                width: 2)),
+                                        focusedBorder: OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                                color: globals.theme.textColor,
                                                 width: 2))),
                                   ),
                                   padding: EdgeInsets.only(left: 20.0)),
@@ -347,7 +367,7 @@ class NewLineFormState extends State<NewLineForm> {
                                           Icons.check,
                                           color: Colors.white,
                                         ),
-                                        color: Colors.green,
+                                        color: globals.theme.primaryColor,
                                         elevation: 3.0,
                                         onPressed: () {
                                           if (widget.name == null ||
@@ -373,9 +393,9 @@ class NewLineFormState extends State<NewLineForm> {
                                       child: RaisedButton(
                                         child: Icon(
                                           Icons.clear,
-                                          color: Colors.white,
+                                          color: globals.theme.primaryColor,
                                         ),
-                                        color: Colors.red,
+                                        color: Colors.white,
                                         elevation: 3.0,
                                         onPressed: () {
                                           widget.remove();
@@ -393,6 +413,9 @@ class NewLineFormState extends State<NewLineForm> {
                                   Expanded(
                                       child: widget.uid == null
                                           ? TextFormField(
+                                              style: TextStyle(
+                                                  color:
+                                                      globals.theme.textColor),
                                               controller: widget.nameController,
                                               onTap: () {
                                                 editingIndex = widget.index;
@@ -415,31 +438,36 @@ class NewLineFormState extends State<NewLineForm> {
                                                 setState(() {});
                                               },
                                               decoration: InputDecoration(
-                                                  contentPadding:
-                                                      EdgeInsets.symmetric(
-                                                          vertical: 4.0,
-                                                          horizontal: 20),
+                                                  contentPadding: EdgeInsets.symmetric(
+                                                      vertical: 4.0,
+                                                      horizontal: 20),
                                                   hintStyle: TextStyle(
-                                                      fontWeight: FontWeight
-                                                          .bold,
-                                                      fontSize: 20),
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 20,
+                                                      color: globals
+                                                          .theme.textColor),
                                                   hintText: "Name",
                                                   border: OutlineInputBorder(
                                                       borderSide: BorderSide(
-                                                          color: Colors.green,
+                                                          color: globals.theme
+                                                              .primaryColor,
                                                           width: 2)),
-                                                  enabledBorder:
-                                                      OutlineInputBorder(
-                                                          borderSide:
-                                                              BorderSide(
-                                                                  color: Colors
-                                                                      .green,
-                                                                  width: 2))),
+                                                  enabledBorder: OutlineInputBorder(
+                                                      borderSide: BorderSide(
+                                                          color: globals.theme
+                                                              .primaryColor,
+                                                          width: 2)),
+                                                  focusedBorder: OutlineInputBorder(
+                                                      borderSide: BorderSide(
+                                                          color: globals.theme.textColor,
+                                                          width: 2))),
                                             )
                                           : Chip(
                                               deleteIcon: Icon(
                                                 Icons.cancel,
-                                                color: Colors.white,
+                                                color: globals
+                                                    .theme.backgroundColor,
                                               ),
                                               onDeleted: () {
                                                 widget.uid = null;
@@ -447,11 +475,12 @@ class NewLineFormState extends State<NewLineForm> {
                                                 setState(() {});
                                               },
                                               backgroundColor:
-                                                  Colors.green[700],
+                                                  globals.theme.lightPrimary,
                                               label: Text(
                                                 widget.name,
                                                 style: TextStyle(
-                                                    color: Colors.white,
+                                                    color: globals
+                                                        .theme.backgroundColor,
                                                     fontWeight:
                                                         FontWeight.bold),
                                               ),
@@ -474,7 +503,7 @@ class NewLineFormState extends State<NewLineForm> {
                               text: (widget.index + 1).toString(),
                               style: TextStyle(
                                   fontSize: 17.0,
-                                  color: Colors.green[800],
+                                  color: globals.theme.darkPrimary,
                                   fontWeight: FontWeight.bold),
                             ),
                           ),
@@ -492,7 +521,7 @@ class NewLineFormState extends State<NewLineForm> {
                                 text: "edit",
                                 style: TextStyle(
                                     fontSize: 17.0,
-                                    color: Colors.grey[700],
+                                    color: globals.theme.backTextColor,
                                     fontWeight: FontWeight.bold),
                               ),
                             ),

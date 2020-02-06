@@ -61,7 +61,7 @@ class _AwardsStreamState extends State<AwardsStream> {
 
   PrimitiveWrapper loaded = PrimitiveWrapper(0);
   PrimitiveWrapper downloaded = PrimitiveWrapper(0);
-  
+
   Map lastEdits;
   int total = 0;
 
@@ -111,14 +111,14 @@ class _AwardsStreamState extends State<AwardsStream> {
     if (widget.directReferences) {
       QuerySnapshot docs =
           await widget.docRef.collection(widget.directoryName).getDocuments();
-          
+
       awards = List.generate(docs.documents.length, (index) {
         return AwardLoader(
             snap: docs.documents[index],
             refresh: widget.refreshParent,
             downloaded: downloaded);
       });
-      
+
       if (widget.numAwards != null) {
         widget.numAwards.value = awards.length;
       }
@@ -186,7 +186,7 @@ class _AwardsStreamState extends State<AwardsStream> {
     for (DocumentSnapshot doc in snapshot.documents) {
       AwardLoader loader = AwardLoader(
           pointer: doc.reference,
-          reference: doc.data["reference"],
+          reference: doc.data["reference"] is String ? Firestore.instance.document(doc.data["reference"]) : doc.data["reference"],
           numLoaded: loaded,
           lastEdit: lastEdits[doc.documentID],
           refresh: widget.refreshParent,
@@ -204,7 +204,7 @@ class _AwardsStreamState extends State<AwardsStream> {
     awards.add(loader);
     if (awards.length >= total) {
       awards.sort((a, b) {
-        if (a == null || b == null) {
+        if (a == null || b == null || a.award == null || b.award == null) {
           return 0;
         }
         return b.award.timestamp - a.award.timestamp;
@@ -219,7 +219,7 @@ class _AwardsStreamState extends State<AwardsStream> {
       if (awards.length > 0) {
         widget.noAwards.value = false;
       }
-      if (lastEdits.length == 0 && awards.length > 0) {
+      if (awards.length > 0) {
         initEdits();
       }
       if (widget.refreshParent != null) {
@@ -234,14 +234,19 @@ class _AwardsStreamState extends State<AwardsStream> {
   }
 
   initEdits() async {
-    int lastEdit = (await widget.docRef.get()).data["lastEdit"];
+    Map data = (await widget.docRef.get()).data;
+    int lastEdit = data["lastEdit"];
     if (lastEdit == null) {
       await widget.docRef.setData(
           {"lastEdit": DateTime.now().microsecondsSinceEpoch},
           merge: true);
     }
-    lastEdits = Map.fromIterable(awards,
-        key: (a) => a.award.hash.toString(), value: (a) => lastEdit);
+    for(AwardLoader a in awards) {
+      if(lastEdits[a.award.hash.toString()] == null) {
+        lastEdits[a.award.hash.toString()] = DateTime.now().microsecondsSinceEpoch;
+      }
+    }
+        
     widget.docRef.setData({"awardEdits": lastEdits}, merge: true);
   }
 
@@ -264,7 +269,7 @@ class _AwardsStreamState extends State<AwardsStream> {
     Result result = await retrieveAwards(url);
     Map<int, Award> inServer = Map();
     awards.forEach((a) {
-      if (a.award.fromDoc) {
+      if (a.award != null && a.award.fromDoc) {
         if (inServer[a.award.hash] != null) {
           Firestore.instance.document(a.award.docPath).delete();
         } else {
@@ -273,7 +278,7 @@ class _AwardsStreamState extends State<AwardsStream> {
       }
     });
     Map<int, Award> inDoc = Map();
-    if(result == null) {
+    if (result == null) {
       print('error');
       return null;
     }
@@ -293,7 +298,6 @@ class _AwardsStreamState extends State<AwardsStream> {
     }
 
     inDoc.forEach((dHash, dAward) {
-      dAward.showYear = false;
       uploadAward(widget.collectionInfo.docRef.path + "/document_awards",
           dAward, widget.collectionInfo.docRef, false);
 
@@ -304,6 +308,7 @@ class _AwardsStreamState extends State<AwardsStream> {
       }, merge: true);
     });
     inServer.forEach((sHash, sAward) {
+      globals.loadedAwards.remove(sAward.hash.toString());
       Firestore.instance.document(sAward.docPath).delete();
     });
     auditing = false;
@@ -326,7 +331,7 @@ class _AwardsStreamState extends State<AwardsStream> {
                     : Text(
                         'Nothing to see here',
                         style: TextStyle(
-                            color: Colors.green[800],
+                            color: globals.theme.backTextColor,
                             fontSize: 40,
                             fontWeight: FontWeight.bold),
                       ),
@@ -337,7 +342,7 @@ class _AwardsStreamState extends State<AwardsStream> {
         : SliverList(
             delegate: SliverChildListDelegate(
             widget.searchText != null && widget.searchText.value != null
-                ? mostRecent
+                ? widget.mostRecent.value
                     ? awards.map((a) {
                         return a.buildCard(context, true, widget.filter.value);
                       }).where((test) {
@@ -345,7 +350,8 @@ class _AwardsStreamState extends State<AwardsStream> {
                           return false;
                         }
                         var loader = test as AwardCard;
-                        return loader.award != null && loader.award.contains(widget.searchText.value);
+                        return loader.award != null &&
+                            loader.award.contains(widget.searchText.value);
                       }).toList()
                     : awards
                         .map((a) {
@@ -359,7 +365,8 @@ class _AwardsStreamState extends State<AwardsStream> {
                             return false;
                           }
                           var loader = test as AwardCard;
-                          return loader.award != null && loader.award.contains(widget.searchText.value);
+                          return loader.award != null &&
+                              loader.award.contains(widget.searchText.value);
                         })
                         .toList()
                 : mostRecent

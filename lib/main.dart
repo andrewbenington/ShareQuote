@@ -1,36 +1,45 @@
-import 'dart:io';
-
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:pearawards/App/HomePage.dart';
-import 'package:pearawards/App/LoginPage.dart';
 import 'package:pearawards/Notifications/NotificationHandler.dart';
+import 'package:pearawards/SplashPage.dart';
 import 'package:pearawards/Utils/Globals.dart' as globals;
+import 'package:shared_preferences/shared_preferences.dart';
 
 NotificationHandler notifications;
 
 void main() async {
-  var _auth = FirebaseAuth.instance;
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(MaterialApp(
-    theme: ThemeData(primarySwatch: Colors.green),
-    title: "FriendAwards",
-    home: await getLandingPage(_auth),
-  ));
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  String theme = prefs.getString('theme');
+  if (theme == null || globals.themes[theme] == null) {
+    globals.changeTheme("Moss");
+  } else {
+    globals.changeTheme(theme);
+  }
+  runApp(ShareQuote());
 }
 
-Future<Widget> getLandingPage(FirebaseAuth auth) async {
-  globals.firebaseUser = await auth.currentUser();
-  globals.firebaseAuth = auth;
-  return StreamBuilder<FirebaseUser>(
-    stream: auth.onAuthStateChanged,
-    builder: (BuildContext context, snapshot) {
-      if (snapshot.hasData && (!snapshot.data.isAnonymous)) {
-        return HomePage();
-      }
+class ShareQuote extends StatefulWidget {
+  ShareQuote();
+  @override
+  State<StatefulWidget> createState() {
+    return ShareQuoteState();
+  }
+}
 
-      return LoginPage();
-    },
-  );
+class ShareQuoteState extends State<StatefulWidget> {
+  ThemeData theme = globals.themeData;
+  updateTheme() {
+    theme = globals.themeData;
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    globals.updateTheme = updateTheme;
+    return MaterialApp(
+      theme: globals.themeData,
+      title: "FriendAwards",
+      home: SplashPage(),
+    );
+  }
 }

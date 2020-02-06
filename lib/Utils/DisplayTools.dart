@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:pearawards/Utils/Globals.dart' as globals;
 import 'dart:ui' as ui;
 
 var days = <String>[
@@ -133,7 +134,7 @@ class ShadowText extends StatelessWidget {
                       ? TextStyle(
                           fontSize: style.fontSize,
                           fontWeight: style.fontWeight,
-                          color: Colors.black.withOpacity(0.5))
+                          color: Colors.black45.withOpacity(0.5))
                       : null))),
       Text(text, style: style)
     ]);
@@ -152,14 +153,14 @@ class SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   bool shouldRebuild(SliverTabBarDelegate oldDelegate) {
-    return false;
+    return true;
   }
 
   @override
   Widget build(
       BuildContext context, double shrinkOffset, bool overlapsContent) {
     return Container(
-      color: Colors.green,
+      color: globals.theme.primaryColor,
       child: _tabBar,
     );
   }
@@ -184,7 +185,7 @@ class SliverTextFieldDelegate extends SliverPersistentHeaderDelegate {
   Widget build(
       BuildContext context, double shrinkOffset, bool overlapsContent) {
     return Container(
-      color: Colors.green,
+      color: globals.theme.primaryColor,
       child: _field,
     );
   }

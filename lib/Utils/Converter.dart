@@ -49,7 +49,7 @@ Future<Result> retrieveAwards(String url) async {
 }
 
 Future<List<Award>> convertAwards(String file, String url) async {
-  int currentYear = 2013;
+  int currentYear = 0;
   List<Map> awards = [];
   Map currentAward = {};
   Map currentLine = {};
@@ -137,7 +137,9 @@ Future<List<Award>> convertAwards(String file, String url) async {
           newYear += (line.codeUnitAt(index) - 48);
           index++;
         }
-        currentYear = newYear;
+        if (newYear < 2100 && newYear > 2000) {
+          currentYear = newYear;
+        }
         currentState = CurrentState.unknown;
         break;
       case CurrentState.quote:
@@ -329,7 +331,9 @@ Future<List<Award>> convertAwards(String file, String url) async {
           }
           Map<String, dynamic> newAward = {
             "timestamp":
-                DateTime(currentYear).microsecondsSinceEpoch + awards.length,
+                DateTime(currentYear == 0 ? DateTime.now().year : currentYear)
+                        .microsecondsSinceEpoch +
+                    awards.length,
             "showYear": true,
             "people": people,
             "lines": quoteMaps,

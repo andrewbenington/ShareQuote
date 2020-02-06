@@ -135,15 +135,17 @@ class _AwardCardState extends State<AwardCard> {
     return widget.award == null
         ? Container()
         : Card(
+            color: globals.theme.cardColor,
             child: CustomPaint(
               painter: TabPainter(
                   fromLeft: 0.4,
                   height: 36,
                   color: widget.award.fromDoc
                       ? Colors.grey[300]
-                      : Colors.green[100]),
+                      : globals.theme.backgroundColor.withOpacity(0.5)),
               child: FlatButton(
                 splashColor: Colors.transparent,
+
                 //highlightColor: Colors.transparent,
                 onPressed: widget.tappable
                     ? () {
@@ -176,7 +178,7 @@ class _AwardCardState extends State<AwardCard> {
                               widget.award.liked
                                   ? ExtraIcons.heart
                                   : ExtraIcons.heart_empty,
-                              color: Colors.green[600],
+                              color: globals.theme.buttonColor,
                             ),
                             onPressed: () {
                               if (!widget.award.liked) {
@@ -216,13 +218,13 @@ class _AwardCardState extends State<AwardCard> {
                           child: Text(
                             widget.award.likes.toString(),
                             style: TextStyle(
-                                fontSize: 18, color: Colors.green[600]),
+                                fontSize: 18, color: globals.theme.buttonColor),
                           ),
                         ),
                         Container(
                           child: Icon(
                             ExtraIcons.comment_empty,
-                            color: Colors.green[600],
+                            color: globals.theme.buttonColor,
                           ),
                           width: 38,
                           padding: EdgeInsets.only(bottom: 4),
@@ -233,7 +235,7 @@ class _AwardCardState extends State<AwardCard> {
                                 ? "0"
                                 : widget.award.comments.toString(),
                             style: TextStyle(
-                                fontSize: 18, color: Colors.green[600]),
+                                fontSize: 18, color: globals.theme.buttonColor),
                           ),
                           padding: EdgeInsets.only(right: 22),
                         ),
@@ -252,9 +254,9 @@ Widget buildAwardCard(BuildContext context, Award award, bool tappable) {
   return Card(
     child: CustomPaint(
       painter: TabPainter(
-          fromLeft: 0.4,
-          height: 36,
-          color: award.fromDoc ? Colors.grey[300] : Colors.green[100]),
+        fromLeft: 0.4,
+        height: 36,
+      ),
       child: FlatButton(
         splashColor: Colors.transparent,
         //highlightColor: Colors.transparent,
@@ -315,11 +317,13 @@ class Award extends StatelessWidget {
           (quote) {
             if (quote['name'] != null && quote['name'] != false) {
               Map person;
-              try{person = map['people'][quote['name']];} catch (e) {
+              try {
+                person = map['people'][quote['name']];
+              } catch (e) {
                 print(map);
                 print(quote);
               }
-              
+
               quote['name'] =
                   User(uid: person['uid'], displayName: person['name']);
             }
@@ -342,7 +346,7 @@ class Award extends StatelessWidget {
   final int numQuotes;
   final Name author;
   final List<Line> quotes;
-  final List people;
+  List people;
   final bool fromDoc;
   bool nsfw;
   bool showYear;
@@ -356,7 +360,7 @@ class Award extends StatelessWidget {
 
   bool contains(String filter) {
     for (Line l in quotes) {
-      if(l.message == null) {
+      if (l.message == null) {
         print('error');
       }
       if (l.message.toLowerCase().contains(filter.toLowerCase())) {
@@ -399,7 +403,7 @@ class Award extends StatelessWidget {
                                 DateTime.fromMicrosecondsSinceEpoch(timestamp)),
                         style: TextStyle(
                             fontSize: 17.0,
-                            color: Colors.green[800],
+                            color: globals.theme.textColor,
                             fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -416,21 +420,30 @@ class Award extends StatelessWidget {
                       child: Container(
                         child: FittedBox(
                           fit: BoxFit.scaleDown,
-                          child: RichText(
-                            text: TextSpan(
-                              text: author == null
-                                  ? ''
-                                  : fromDoc ? 'Google Doc' : author.name,
-                              style: TextStyle(
-                                  fontSize: 17.0,
-                                  color: fromDoc
-                                      ? Colors.grey[700]
-                                      : Colors.green[800],
-                                  fontWeight: FontWeight.bold),
+                          child: FlatButton(
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                            onPressed: author.uid == null || author.uid == ""
+                                ? null
+                                : () {
+                                    visitUserPage(author.uid, context);
+                                  },
+                            child: RichText(
+                              text: TextSpan(
+                                text: author == null
+                                    ? ''
+                                    : fromDoc ? 'Google Doc' : author.name,
+                                style: TextStyle(
+                                    fontSize: 17.0,
+                                    color: fromDoc
+                                        ? Colors.grey[700]
+                                        : globals.theme.backTextColor,
+                                    fontWeight: FontWeight.bold),
+                              ),
                             ),
                           ),
                         ),
-                        margin: EdgeInsets.only(bottom: 15.0, top: 8.0),
+                        margin: EdgeInsets.only(bottom: 15.0, top: 0.0),
                         alignment: Alignment.centerRight,
                       ),
                     ),
@@ -511,7 +524,7 @@ class Quote extends Line {
                 text: '\"$message\"',
                 style: TextStyle(
                   fontSize: 20.0,
-                  color: Colors.black,
+                  color: globals.theme.textColor,
                 ),
               ),
             ),
@@ -580,6 +593,14 @@ class Name extends StatelessWidget {
 
   tagUser(BuildContext context) async {
     Award a = context.findAncestorWidgetOfExactType<Award>();
+    if (a.people == null) {
+      a.people = [];
+    }
+    if (a.people.indexOf(name.trim()) >= 0) {
+      a.people[a.people.indexOf(name.trim())]["uid"] = uid;
+    } else {
+      a.people.add({"name": name, "uid": uid});
+    }
     uid = await Navigator.push(
         context,
         PageRouteBuilder(
@@ -592,13 +613,9 @@ class Name extends StatelessWidget {
           },
         ));
     if (uid != null) {
-      DocumentReference recipient = Firestore.instance.document('users/$uid');
       Firestore.instance.document(a.docPath).updateData(awardToMap(a));
-      recipient.collection('awards').document(a.hash.toString()).setData({
-        'timestamp': a.timestamp,
-        'reference': Firestore.instance.document(
-            'users/${a.author.uid}/created_awards/${a.hash.toString()}')
-      });
+      setTagReference(a.docPath, uid, a.timestamp, a.hash.toString());
+
       sendNotification(uid, {
         'notification': '2',
         'name': globals.firebaseUser.displayName,
@@ -621,7 +638,7 @@ class Name extends StatelessWidget {
               style: TextStyle(
                 fontSize: 16.0,
                 fontWeight: uid == null ? FontWeight.normal : FontWeight.bold,
-                color: uid == null ? Colors.black87 : Colors.black,
+                color: globals.theme.textColor,
               ),
             ),
           ),

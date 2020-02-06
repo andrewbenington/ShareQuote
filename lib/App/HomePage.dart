@@ -13,6 +13,7 @@ import 'package:pearawards/SearchPage/SearchPage.dart';
 import 'package:pearawards/Utils/Globals.dart' as globals;
 import 'package:pearawards/Profile/ProfilePage.dart';
 import 'package:pearawards/Utils/Utils.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -40,19 +41,21 @@ class _HomePageState extends State<HomePage> {
     super.initState();
   }
 
-  
-
   @override
   Widget build(BuildContext context) {
-    var pages = <Widget>[
+    globals.pages = <Widget>[
       HomeFeed(),
-      SearchPage(searchText: searchText, searchRefresh: searchRefresh, searchController: searchController,),
+      SearchPage(
+        searchText: searchText,
+        searchRefresh: searchRefresh,
+        searchController: searchController,
+      ),
       CollectionPage(),
       ProfilePage(globals.firebaseUser.uid)
     ];
     List<AppBar> bars = [
       AppBar(
-        backgroundColor: Colors.green,
+        backgroundColor: globals.theme.primaryColor,
         title: Text("Home"),
         actions: <Widget>[
           IconButton(
@@ -67,30 +70,34 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
       AppBar(
-          backgroundColor: Colors.green,
+          backgroundColor: globals.theme.primaryColor,
           title: Container(
             height: 35,
             child: TextField(
               onChanged: (content) {
-
-                  searchText.value = "";
-                  searchRefresh.value = true;
-                setState(() {
-                });
+                searchText.value = content;
+                searchRefresh.value = true;
+                setState(() {});
               },
-              style: TextStyle(color: Colors.white, fontSize: 20),
+              style: TextStyle(color: globals.theme.textColor, fontSize: 20),
               scrollPadding: EdgeInsets.symmetric(vertical: 0.0),
-              cursorColor: Colors.white,
+              cursorColor: globals.theme.backgroundColor,
               decoration: InputDecoration(
                 border: OutlineInputBorder(
                     borderRadius: new BorderRadius.circular(25.0),
-                    borderSide: BorderSide(color: Colors.green, width: 2)),
+                    borderSide: BorderSide(
+                        color: globals.theme.primaryColor, width: 2)),
                 enabledBorder: OutlineInputBorder(
                     borderRadius: new BorderRadius.circular(25.0),
-                    borderSide: BorderSide(color: Colors.green, width: 2)),
+                    borderSide: BorderSide(
+                        color: globals.theme.primaryColor, width: 2)),
+                focusedBorder: OutlineInputBorder(
+                    borderRadius: new BorderRadius.circular(25.0),
+                    borderSide:
+                        BorderSide(color: globals.theme.darkPrimary, width: 2)),
                 contentPadding:
                     const EdgeInsets.symmetric(vertical: 0.0, horizontal: 15.0),
-                fillColor: Colors.green[300],
+                fillColor: globals.theme.lightPrimary,
                 filled: true,
                 hintStyle: TextStyle(color: Colors.white, fontSize: 20),
                 hintText: "Search",
@@ -99,7 +106,7 @@ class _HomePageState extends State<HomePage> {
             ),
           )),
       AppBar(
-        backgroundColor: Colors.green,
+        backgroundColor: globals.theme.primaryColor,
         title: Text("Collections"),
         actions: <Widget>[
           IconButton(
@@ -130,7 +137,7 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
       AppBar(
-        backgroundColor: Colors.green,
+        backgroundColor: globals.theme.primaryColor,
         title: Text("Profile"),
         actions: <Widget>[
           IconButton(
@@ -162,41 +169,49 @@ class _HomePageState extends State<HomePage> {
       ),
     ];
     return Scaffold(
-      appBar: bars[pageIndex],
-      body: Stack(children: [
-        PageView(
-          controller: pageController,
-          children: pages,
-          onPageChanged: (newPage) {
-            pageIndex = newPage;
-            setState(() {});
-          },
-        ),
-        NotificationHandler()
-      ]),
-      drawer: buildDrawer(),
-      bottomNavigationBar: BottomNavigationBar(
-        unselectedItemColor: Colors.grey[600],
-        selectedItemColor: Colors.green[600],
-        onTap: (index) {
-          setState(() {
-            pageIndex = index;
-            pageController.jumpToPage(index);
-          });
-        },
-        currentIndex: pageIndex,
-        items: <BottomNavigationBarItem>[
-          BottomNavigationBarItem(icon: Icon(Icons.home), title: Text("Home")),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.search), title: Text("Search")),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.collections_bookmark),
-              title: Text("Collections")),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.person), title: Text("Profile")),
-        ],
-      ),
-    );
+        appBar: bars[pageIndex],
+        body: Stack(children: [
+          PageView(
+            controller: pageController,
+            children: globals.pages,
+            onPageChanged: (newPage) {
+              pageIndex = newPage;
+              setState(() {});
+            },
+          ),
+          NotificationHandler()
+        ]),
+        drawer: buildDrawer(),
+        bottomNavigationBar: Material(
+          color: globals.theme.primaryColor,
+          child: Theme(
+            data: Theme.of(context).copyWith(
+                textTheme:
+                    TextTheme(caption: TextStyle(color: Colors.black45))),
+            child: BottomNavigationBar(
+              unselectedItemColor: Colors.grey[600],
+              selectedItemColor: globals.theme.primaryColor,
+              onTap: (index) {
+                setState(() {
+                  pageIndex = index;
+                  pageController.jumpToPage(index);
+                });
+              },
+              currentIndex: pageIndex,
+              items: <BottomNavigationBarItem>[
+                BottomNavigationBarItem(
+                    icon: Icon(Icons.home), title: Text("Home")),
+                BottomNavigationBarItem(
+                    icon: Icon(Icons.search), title: Text("Search")),
+                BottomNavigationBarItem(
+                    icon: Icon(Icons.collections_bookmark),
+                    title: Text("Collections")),
+                BottomNavigationBarItem(
+                    icon: Icon(Icons.person), title: Text("Profile")),
+              ],
+            ),
+          ),
+        ));
   }
 
   Drawer buildDrawer() {
@@ -204,41 +219,10 @@ class _HomePageState extends State<HomePage> {
       child: Column(
         children: <Widget>[
           AppBar(
-            backgroundColor: Colors.green,
+            backgroundColor: globals.theme.primaryColor,
             title: Text("Options"),
           ),
-          Container(
-            child: Row(
-              children: <Widget>[
-                Text("Order: "),
-                Expanded(
-                  child: ChoiceChip(
-                    labelStyle: TextStyle(
-                        color: mostRecent ? Colors.green : Colors.black87),
-                    label: Text('Latest'),
-                    onSelected: (bool selected) {
-                      setState(() {
-                        mostRecent = selected;
-                      });
-                    },
-                    selected: mostRecent,
-                  ),
-                ),
-                Expanded(
-                  child: ChoiceChip(
-                    label: Text('First'),
-                    onSelected: (bool selected) {
-                      setState(() {
-                        mostRecent = !selected;
-                      });
-                    },
-                    selected: !mostRecent,
-                  ),
-                ),
-              ],
-            ),
-            margin: EdgeInsets.all(10.0),
-          ),
+
           /*Container(
             height: MediaQuery.of(context).size.height * 0.7,
             child: ListView.builder(
@@ -290,47 +274,46 @@ class _HomePageState extends State<HomePage> {
               },
             ),
           ),*/
+
+          Expanded(
+            child: Padding(
+                child: Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 15,
+                    children: <Widget>[Text("Theme: ")] +
+                        List.generate(globals.themes.length, ((index) {
+                          return ChoiceChip(
+                            selectedColor: globals.theme.primaryColor,
+                            labelStyle: TextStyle(
+                                color: globals.theme ==
+                                        globals.themes.values.elementAt(index)
+                                    ? Colors.white
+                                    : Colors.black87),
+                            label: Text(globals.themes.keys.elementAt(index)),
+                            onSelected: (bool selected) {
+                              storeTheme(globals.themes.keys.elementAt(index));
+                              globals.changeTheme(
+                                  globals.themes.keys.elementAt(index));
+                              setState(() {});
+                              rebuildAllChildren(context);
+                            },
+                            selected: globals.theme ==
+                                globals.themes.values.elementAt(index),
+                          );
+                        }))), padding: EdgeInsets.symmetric(vertical: 15),),
+          ),
           RaisedButton(
-            child: Text("Log Out"),
+            child: Text(
+              "Log Out",
+              style: TextStyle(color: Colors.white),
+            ),
+            color: globals.theme.primaryColor,
             onPressed: () {
               //TODO: DELETE DEVICE ID
               globals.firebaseAuth.signOut();
               Navigator.of(context).pushReplacement(MaterialPageRoute(
                 builder: (context) => LoginPage(),
               ));
-            },
-          ),
-          Spacer(),
-          RaisedButton(
-            child: Text("Attributions"),
-            onPressed: () {
-              Navigator.push(
-                context,
-                PageRouteBuilder(
-                  pageBuilder: (context, animation, secondaryAnimation) =>
-                      Scaffold(
-                    appBar: AppBar(
-                      title: Text("Attributions"),
-                    ),
-                    body: Padding(
-                      padding: EdgeInsets.symmetric(
-                          horizontal: 20.0, vertical: 20.0),
-                      child: Column(
-                        children: <Widget>[
-                          //Text("Comments icon created by Alice Design from Noun Project")
-                        ],
-                      ),
-                    ),
-                  ),
-                  transitionsBuilder:
-                      (context, animation, secondaryAnimation, child) {
-                    return ScaleTransition(
-                        scale: animation.drive(CurveTween(curve: Curves.ease)),
-                        alignment: Alignment.center,
-                        child: child);
-                  },
-                ),
-              );
             },
           ),
           Container(
@@ -340,4 +323,9 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
+}
+
+storeTheme(String theme) async {
+  SharedPreferences preferences = await SharedPreferences.getInstance();
+  preferences.setString("theme", theme);
 }
