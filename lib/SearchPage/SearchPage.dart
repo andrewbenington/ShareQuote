@@ -55,7 +55,7 @@ class _SearchPageState extends State<SearchPage> {
       users = [];
     } else {
       users = [];
-      setState((){});
+      setState(() {});
       Timer(Duration(milliseconds: 10), () async {
         users = await Firestore.instance
             .collection('users')
@@ -119,22 +119,27 @@ class _SearchPageState extends State<SearchPage> {
                           },
                         );
                       }, childCount: users.length))),
-      AwardsStream(
-        docRef: Firestore.instance
-            .document('users_private/${globals.firebaseUser.uid}'),
-        directoryName: 'feed',
-        shouldLoad: shouldLoad,
-        refreshParent: () {
-          setState(() {});
-        },
-        isLoading: isLoading,
-        noAwards: noAwards,
-        filter: filter,
-        searchText: widget.searchText,
-      ),
+      widget.searchController.text == null || widget.searchController.text == ""
+          ? SliverList(
+              delegate: SliverChildListDelegate([Container()]),
+            )
+          : AwardsStream(
+              docRef: Firestore.instance
+                  .document('users_private/${globals.firebaseUser.uid}'),
+              directoryName: 'feed',
+              shouldLoad: shouldLoad,
+              refreshParent: () {
+                setState(() {});
+              },
+              isLoading: isLoading,
+              noAwards: noAwards,
+              filter: filter,
+              searchText: widget.searchText,
+              mostRecent: PrimitiveWrapper(true),
+            ),
     ];
     return Scaffold(
-        backgroundColor: Colors.green[200],
+        backgroundColor: globals.theme.backgroundColor,
         body: Stack(children: [
           DefaultTabController(
             key: tabKey,
@@ -145,7 +150,7 @@ class _SearchPageState extends State<SearchPage> {
                   floating: true,
                   delegate: SliverTabBarDelegate(
                     TabBar(
-                      indicatorColor: Colors.white,
+                      indicatorColor: globals.theme.backgroundColor,
                       labelPadding: EdgeInsets.symmetric(vertical: 10.0),
                       onTap: (index) {
                         shouldLoad.value = true;

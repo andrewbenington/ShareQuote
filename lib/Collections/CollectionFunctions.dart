@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:pearawards/Collections/CollectionStream.dart';
 import 'package:pearawards/Utils/Globals.dart' as globals;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -11,7 +13,8 @@ createCollection(String name) async {
   await document.setData({
     "lastEdit": DateTime.now().microsecondsSinceEpoch,
     "name": name,
-    "owner": globals.firebaseUser.uid
+    "owner": globals.firebaseUser.uid,
+    "followers": {globals.firebaseUser.uid: true}
   });
   globals.loadedCollections[document.documentID] = Collection(
       docRef: document,
@@ -26,13 +29,17 @@ Future<void> addCollectionReference(
   var docRef = Firestore.instance.document('users/${globals.firebaseUser.uid}');
 
   docRef.get().then((doc) {
+    document.updateData({
+      "followers": {globals.firebaseUser.uid: true}
+    });
     var coll = Firestore.instance
         .collection('users/${globals.firebaseUser.uid}/collections')
         .document();
     coll.get().then((doc) {
       if (!doc.exists) {
         Firestore.instance
-            .document('users/${globals.firebaseUser.uid}/collections/${document.documentID}')
+            .document(
+                'users/${globals.firebaseUser.uid}/collections/${document.documentID}')
             .setData({
           "reference": document,
           "name": title,
@@ -51,8 +58,12 @@ Future<void> addCollectionReference(
 }
 
 Future<void> removeCollectionReference(DocumentReference document) async {
+  document.updateData({
+    "followers": {globals.firebaseUser.uid: false}
+  });
   Firestore.instance
-      .document('users/${globals.firebaseUser.uid}/collections/${document.documentID}')
+      .document(
+          'users/${globals.firebaseUser.uid}/collections/${document.documentID}')
       .delete();
   deleteAwardsFromMemory(document.documentID);
   globals.loadedCollections.remove(document.documentID);
@@ -103,4 +114,25 @@ Future<void> loadCollectionFromReference(
       lastEdited: document.data["lastEdit"] == null
           ? DateTime.now().microsecondsSinceEpoch
           : document.data["lastEdit"]);
+}
+
+pushCollectionStream(
+    BuildContext context, Collection c, Function onChanged) async {
+  if (await Navigator.push(
+    context,
+    PageRouteBuilder(
+      pageBuilder: (context, animation, secondaryAnimation) => CollectionStream(
+        collectionInfo: c,
+        title: c.title,
+      ),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        return ScaleTransition(
+            scale: animation.drive(CurveTween(curve: Curves.ease)),
+            alignment: Alignment.center,
+            child: child);
+      },
+    ),
+  )) {
+    onChanged();
+  }
 }

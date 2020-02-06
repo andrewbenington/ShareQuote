@@ -128,7 +128,7 @@ class ProfilePageState extends State<ProfilePage> {
     });
     if (imageURL == null) {
       loadData();
-    }
+    } 
     tabPages = [
       AwardsStream(
         docRef: Firestore.instance.document('users/${widget.uid}'),
@@ -180,14 +180,14 @@ class ProfilePageState extends State<ProfilePage> {
                   Text(
                     'No Collections',
                     style: TextStyle(
-                        color: Colors.green[800],
+                        color: globals.theme.darkPrimary,
                         fontSize: 40,
                         fontWeight: FontWeight.bold),
                   ),
                   Text(
                     'Create one on the Collections screen',
                     style: TextStyle(
-                      color: Colors.green[800],
+                      color: globals.theme.darkPrimary,
                       fontSize: 20,
                     ),
                   ),
@@ -196,10 +196,14 @@ class ProfilePageState extends State<ProfilePage> {
               ),
             ),
     ];
+    if(widget.uid == globals.firebaseUser.uid) {
+      globals.profileTabPages = tabPages;
+      tabIndex = globals.profileIndex;
+    }
     Size screenSize = MediaQuery.of(context).size;
 
     return Scaffold(
-        backgroundColor: Colors.green[200],
+        backgroundColor: globals.theme.backgroundColor,
         endDrawer: buildDrawer(),
         body: Stack(children: [
           RefreshIndicator(
@@ -207,6 +211,7 @@ class ProfilePageState extends State<ProfilePage> {
               return refreshAll();
             },
             child: DefaultTabController(
+              initialIndex: tabIndex,
               key: tabKey,
               length: tabPages.length,
               child: CustomScrollView(
@@ -220,13 +225,17 @@ class ProfilePageState extends State<ProfilePage> {
                     floating: true,
                     delegate: SliverTabBarDelegate(
                       TabBar(
-                        indicatorColor: Colors.white,
+                        labelColor: Colors.white,
+                        indicatorColor: globals.theme.backgroundColor,
                         labelPadding: EdgeInsets.symmetric(vertical: 10.0),
                         onTap: (index) {
                           shouldLoad.value = true;
                           rebuildAllChildren(context);
                           setState(() {
                             tabIndex = index;
+                            if(widget.uid == globals.firebaseUser.uid) {
+                              globals.profileIndex = index;
+                            }
                           });
                         },
                         tabs: [
@@ -362,7 +371,7 @@ class ProfilePageState extends State<ProfilePage> {
         : Stack(children: [
             RaisedButton(
                 elevation: 8,
-                color: Colors.green[500],
+                color: globals.theme.primaryColor,
                 child: Text(
                   "Discover People",
                   style: TextStyle(
@@ -381,7 +390,7 @@ class ProfilePageState extends State<ProfilePage> {
         : Stack(children: [
             RaisedButton(
                 elevation: 8,
-                color: Colors.green[500],
+                color: globals.theme.primaryColor,
                 child: Icon(
                   notifications
                       ? Icons.notifications_active
@@ -404,7 +413,7 @@ class ProfilePageState extends State<ProfilePage> {
         : Stack(children: [
             RaisedButton(
                 elevation: 8,
-                color: Colors.green[500],
+                color: globals.theme.primaryColor,
                 child: Text(
                   followers.indexOf(globals.firebaseUser.uid) >= 0
                       ? "Following"
@@ -454,7 +463,7 @@ class ProfilePageState extends State<ProfilePage> {
         alignment: Alignment.centerLeft,
         margin: EdgeInsets.only(left: 25.0),
         child: ShadowText(
-          text: displayName == null ? "" : displayName + (verified ? " " : ""),
+          text: displayName == null ? "" : displayName + (verified ? " ✓" : ""),
           offset: 4.0,
           style: TextStyle(
               fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white),
@@ -542,7 +551,7 @@ class ProfilePageState extends State<ProfilePage> {
       child: Column(
         children: <Widget>[
           AppBar(
-            backgroundColor: Colors.green,
+            backgroundColor: globals.theme.primaryColor,
             title: Text('Options'),
           ),
           Container(
@@ -552,7 +561,7 @@ class ProfilePageState extends State<ProfilePage> {
                 Expanded(
                   child: ChoiceChip(
                     labelStyle: TextStyle(
-                        color: mostRecent ? Colors.green : Colors.black87),
+                        color: mostRecent ? globals.theme.primaryColor : Colors.black87),
                     label: Text('Latest'),
                     onSelected: (bool selected) {
                       setState(() {
@@ -616,7 +625,7 @@ class ProfilePageState extends State<ProfilePage> {
         context,
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) => Scaffold(
-            backgroundColor: Colors.green[200],
+            backgroundColor: globals.theme.backgroundColor,
             appBar: AppBar(
               title: Text(title),
             ),
@@ -640,7 +649,7 @@ class ProfilePageState extends State<ProfilePage> {
                         Text(
                           'There\'s no one here :(',
                           style: TextStyle(
-                              color: Colors.green[800],
+                              color: globals.theme.darkPrimary,
                               fontSize: 40,
                               fontWeight: FontWeight.bold),
                         ),

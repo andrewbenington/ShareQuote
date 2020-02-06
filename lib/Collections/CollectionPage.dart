@@ -93,7 +93,7 @@ class _CollectionPageState extends State<CollectionPage> {
       loadCollections();
     }
     return Scaffold(
-      backgroundColor: Colors.green[200],
+      backgroundColor: globals.theme.backgroundColor,
       body: Center(
           // Center is a layout widget. It takes a single child and positions it
           // in the middle of the parent.
@@ -158,7 +158,7 @@ class _CollectionPageState extends State<CollectionPage> {
           child: Icon(
             Icons.add,
             size: 40,
-            color: Colors.green,
+            color: globals.theme.buttonColor,
           ),
           color: HSLColor.fromAHSL(0.6, 0, 0, 1).toColor(),
           onPressed: () {
@@ -179,20 +179,20 @@ class _CollectionPageState extends State<CollectionPage> {
                 children: <TextField>[
                   TextField(
                     controller: name_controller,
-                    decoration: InputDecoration(hintText: "Collection name"),
+                    decoration: InputDecoration(hintText: "Collection name",),
                   ),
                 ],
               ),
             ),
             actions: <Widget>[
               new FlatButton(
-                child: new Text('CANCEL'),
+                child: new Text('CANCEL', style: TextStyle(color: globals.theme.primaryColor)),
                 onPressed: () {
                   Navigator.of(context).pop();
                 },
               ),
               new FlatButton(
-                child: new Text('ADD'),
+                child: new Text('ADD', style: TextStyle(color: globals.theme.primaryColor)),
                 onPressed: () {
                   Navigator.of(context).pop();
                   createAndUpdate(globals.firebaseUser, name_controller.text);
@@ -223,6 +223,7 @@ class CollectionTile extends StatelessWidget {
       int i = 0;
     }
     return Card(
+      color: globals.theme.cardColor,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
       child: CustomPaint(
         painter: CornersPainter(),
@@ -232,7 +233,7 @@ class CollectionTile extends StatelessWidget {
           },
           child: Text(
             c.title,
-            style: TextStyle(fontSize: 28),
+            style: TextStyle(fontSize: 28, color: globals.theme.textColor),
           ),
         ),
       ),
@@ -240,40 +241,7 @@ class CollectionTile extends StatelessWidget {
     );
   }
 
-  pushCollectionStream(
-      BuildContext context, Collection c, Function onChanged) async {
-    if (await Navigator.push(
-      context,
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            CollectionStream(
-          collectionInfo: c,
-          title: c.title,
-        ),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return ScaleTransition(
-              scale: animation.drive(CurveTween(curve: Curves.ease)),
-              alignment: Alignment.center,
-              child: child);
-        },
-      ),
-    )) {
-      onChanged();
-    }
-  }
+  
 }
 
-Route growRoute(Collection c) {
-  return PageRouteBuilder(
-    pageBuilder: (context, animation, secondaryAnimation) => CollectionStream(
-      collectionInfo: c,
-      title: c.title,
-    ),
-    transitionsBuilder: (context, animation, secondaryAnimation, child) {
-      return ScaleTransition(
-          scale: animation.drive(CurveTween(curve: Curves.ease)),
-          alignment: Alignment.center,
-          child: child);
-    },
-  );
-}
+

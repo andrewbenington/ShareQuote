@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:pearawards/Awards/AddQuote.dart';
 import 'package:pearawards/Awards/Award.dart';
 import 'package:pearawards/Awards/AwardsStream.dart';
+import 'package:pearawards/Awards/TagUser.dart';
 import 'package:pearawards/Collections/CollectionFunctions.dart';
 import 'package:pearawards/Utils/Converter.dart';
 import 'package:pearawards/Utils/Upload.dart';
@@ -80,7 +81,12 @@ class _CollectionStreamState extends State<CollectionStream> {
     return Scaffold(
       endDrawer: drawer,
       appBar: AppBar(
-        actions: [CollectionActions(searchText)],
+        backgroundColor: globals.theme.primaryColor,
+        actions: [
+          CollectionActions(searchText, () {
+            setState(() {});
+          })
+        ],
         leading: IconButton(
           icon: Icon(Icons.close, size: 30),
           onPressed: () {
@@ -97,7 +103,7 @@ class _CollectionStreamState extends State<CollectionStream> {
                 alignment: Alignment.center,
               ),
       ),
-      backgroundColor: Colors.green[200],
+      backgroundColor: globals.theme.backgroundColor,
       body: RefreshIndicator(
         child: noAwards.value && !isLoading.value && !shouldLoad.value
             ? ListView(children: [
@@ -110,14 +116,14 @@ class _CollectionStreamState extends State<CollectionStream> {
                         Text(
                           'No Awards',
                           style: TextStyle(
-                              color: Colors.green[800],
+                              color: globals.theme.backTextColor,
                               fontSize: 40,
                               fontWeight: FontWeight.bold),
                         ),
                         Text(
                           'Tap the \'+\' button to add one!',
                           style: TextStyle(
-                            color: Colors.green[800],
+                            color: globals.theme.textColor,
                             fontSize: 20,
                           ),
                         ),
@@ -135,6 +141,7 @@ class _CollectionStreamState extends State<CollectionStream> {
                     collectionInfo: widget.collectionInfo,
                     docRef: widget.collectionInfo.docRef,
                     shouldLoad: shouldLoad,
+                    mostRecent: mostRecent,
                     isLoading: isLoading,
                     noAwards: noAwards,
                     filter: filter,
@@ -157,11 +164,15 @@ class _CollectionStreamState extends State<CollectionStream> {
         onRefresh: refresh,
       ),
       floatingActionButton: FloatingActionButton(
+        backgroundColor: globals.theme.primaryColor,
         onPressed: () {
           newAward();
         },
         tooltip: 'Increment',
-        child: Icon(Icons.add),
+        child: Icon(
+          Icons.add,
+          color: Colors.white,
+        ),
       ),
     );
   }
@@ -194,7 +205,9 @@ class _CollectionStreamState extends State<CollectionStream> {
   Drawer buildDrawer() {
     return Drawer(
         child: widget.collectionInfo.owner == globals.firebaseUser.uid
-            ? ownerDrawer()
+            ? ownerDrawer(() {
+                setState(() {});
+              })
             : followerDrawer());
   }
 
@@ -203,7 +216,7 @@ class _CollectionStreamState extends State<CollectionStream> {
       children: <Widget>[
         AppBar(
           actions: <Widget>[Container()],
-          backgroundColor: Colors.green,
+          backgroundColor: globals.theme.primaryColor,
           title: Text('Options'),
         ),
         Container(
@@ -285,17 +298,21 @@ class _CollectionStreamState extends State<CollectionStream> {
               filter.value = !filter.value;
               setState(() {});
             }),
+        RaisedButton(
+          child: Text('Invite a friend'),
+          onPressed: inviteFriend,
+        ),
         Spacer(),
       ],
     );
   }
 
-  Widget ownerDrawer() {
+  Widget ownerDrawer(Function refresh) {
     return Column(
       children: <Widget>[
         AppBar(
           actions: <Widget>[Container()],
-          backgroundColor: Colors.green,
+          backgroundColor: globals.theme.primaryColor,
           title: Text('Options'),
         ),
         Container(
@@ -310,6 +327,7 @@ class _CollectionStreamState extends State<CollectionStream> {
                   onSelected: (bool selected) {
                     setState(() {
                       mostRecent.value = selected;
+                      refresh();
                     });
                   },
                   selected: mostRecent.value,
@@ -331,6 +349,29 @@ class _CollectionStreamState extends State<CollectionStream> {
           margin: EdgeInsets.all(10.0),
         ),
         FlatButton(
+            child: SizedBox(
+              height: 20,
+              width: double.infinity,
+              child: Row(
+                children: <Widget>[
+                  Text(
+                    'Filter NSFW',
+                  ),
+                  Checkbox(
+                    value: filter.value,
+                    onChanged: (newValue) {
+                      filter.value = newValue;
+                      setState(() {});
+                    },
+                  )
+                ],
+              ),
+            ),
+            onPressed: () {
+              filter.value = !filter.value;
+              setState(() {});
+            }),
+        /*FlatButton(
             child: SizedBox(
               height: 20,
               width: double.infinity,
@@ -379,16 +420,17 @@ class _CollectionStreamState extends State<CollectionStream> {
               visibleToFriends = !visibleToFriends;
               visibleToPublic &= visibleToFriends;
               setState(() {});
-            }),
+            }),*/
         RaisedButton(
-          child: Text('New Document'),
+          child: Text('Sync With Google Doc'),
           onPressed: () {
             setState(() {
               showDialog(
                   context: context,
                   builder: (context) {
                     return AlertDialog(
-                      title: Text('Add new document'),
+                      title: Text(
+                          'First, make sure to publish your Google Doc (File->Publish). Paste the URL here. Make sure it ends with \n\'\/pub\' instead of \'\/edit\'.'),
                       content: Container(
                         height: MediaQuery.of(context).size.height * 0.13,
                         child: Column(
@@ -403,13 +445,19 @@ class _CollectionStreamState extends State<CollectionStream> {
                       ),
                       actions: <Widget>[
                         new FlatButton(
-                          child: new Text('CANCEL'),
+                          child: new Text(
+                            'CANCEL',
+                            style: TextStyle(color: globals.theme.primaryColor),
+                          ),
                           onPressed: () {
                             Navigator.of(context).pop();
                           },
                         ),
                         new FlatButton(
-                          child: new Text('ADD'),
+                          child: new Text(
+                            'ADD',
+                            style: TextStyle(color: globals.theme.primaryColor),
+                          ),
                           onPressed: () {
                             addGoogleDoc();
                             Navigator.of(context).pop();
@@ -421,36 +469,17 @@ class _CollectionStreamState extends State<CollectionStream> {
             });
           },
         ),
-        FlatButton(
-            child: SizedBox(
-              height: 20,
-              width: double.infinity,
-              child: Row(
-                children: <Widget>[
-                  Text(
-                    'Filter NSFW',
-                  ),
-                  Checkbox(
-                    value: filter.value,
-                    onChanged: (newValue) {
-                      filter.value = newValue;
-                      setState(() {});
-                    },
-                  )
-                ],
-              ),
-            ),
-            onPressed: () {
-              filter.value = !filter.value;
-              setState(() {});
-            }),
+        RaisedButton(
+          child: Text('Invite a friend'),
+          onPressed: inviteFriend,
+        ),
         Spacer(),
         FlatButton(
           child: SizedBox(
               height: 20,
               width: double.infinity,
               child: Text(
-                'Delete Document',
+                'Delete Collection',
                 style: TextStyle(color: Colors.red),
               )),
           onPressed: () {
@@ -464,11 +493,42 @@ class _CollectionStreamState extends State<CollectionStream> {
       ],
     );
   }
+
+  /* 
+  invite notification
+{
+    "name": name of inviter
+    "title" : name of collection
+    "path" : doc path of collection
+} */
+
+  inviteFriend() async {
+    String uid = await Navigator.push(
+        context,
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) => TagUser(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return ScaleTransition(
+                scale: animation.drive(CurveTween(curve: Curves.ease)),
+                alignment: Alignment.center,
+                child: child);
+          },
+        ));
+    if (uid != null) {
+      sendNotification(uid, {
+        "notification": "4",
+        "name": globals.firebaseUser.displayName,
+        "title": widget.collectionInfo.title,
+        "path": widget.collectionInfo.docRef.path
+      });
+    }
+  }
 }
 
 class CollectionActions extends StatefulWidget {
-  CollectionActions(this.searchText);
+  CollectionActions(this.searchText, this.refresh);
   final PrimitiveWrapper searchText;
+  final Function refresh;
 
   @override
   State<StatefulWidget> createState() {
@@ -481,7 +541,7 @@ class CollectionActionsState extends State<CollectionActions> {
 
   @override
   Widget build(BuildContext context) {
-    searchController.text = widget.searchText.value;
+    //searchController.text = widget.searchText.value;
     return Row(children: <Widget>[
       IconButton(
         icon: Icon(Icons.search),
@@ -492,14 +552,30 @@ class CollectionActionsState extends State<CollectionActions> {
             items: <PopupMenuEntry>[
               PopupMenuItem(
                 child: Container(
-                  child: TextField(
-                    controller: searchController,
-                    onChanged: (text) {
-                      widget.searchText.value = text;
-                      setState(() {});
-                    },
-                    autocorrect: false,
-                  ),
+                  child: Row(children: [
+                    Expanded(
+                      child: TextField(
+                        controller: searchController,
+                        onTap: () {
+                          int i = 0;
+                        },
+                        onChanged: (text) {
+                          widget.searchText.value = text;
+                          widget.refresh();
+                          setState(() {});
+                          rebuildAllChildren(context);
+                        },
+                        autocorrect: false,
+                      ),
+                    ),
+                    IconButton(
+                      icon:
+                          Icon(Icons.close, color: globals.theme.primaryColor),
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                    )
+                  ]),
                   width: 250,
                 ),
               )

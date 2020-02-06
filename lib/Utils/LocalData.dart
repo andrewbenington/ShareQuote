@@ -42,7 +42,10 @@ class LocalData {
     }
 
     for (Award a in awardList) {
-      allAwards[a.hash.toString()] = jsonEncode(awardToMap(a));
+      try{
+      allAwards[a.hash.toString()] = jsonEncode(awardToMap(a));} catch(error) {
+        globals.loadedAwards.remove(a.hash.toString());
+      }
     }
     // Write the file
     return file.writeAsString(jsonEncode(allAwards));

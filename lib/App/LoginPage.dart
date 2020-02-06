@@ -25,7 +25,7 @@ class LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        backgroundColor: Colors.green[200],
+        backgroundColor: globals.theme.backgroundColor,
         body: Container(
             child: Center(
                 child: Stack(children: <Widget>[
@@ -37,14 +37,15 @@ class LoginPageState extends State<LoginPage> {
                   Spacer(),
                   Text(
                     "Share",
-                    style: TextStyle(fontSize: 52.0, color: Colors.grey[900]),
+                    style: TextStyle(
+                        fontSize: 52.0, color: globals.theme.backTextColor),
                   ),
                   Text(
                     "Quote",
                     style: TextStyle(
                         fontSize: 52.0,
                         fontWeight: FontWeight.bold,
-                        color: Colors.green[900]),
+                        color: globals.theme.darkPrimary),
                   ),
                   Spacer(),
                 ],
@@ -69,52 +70,66 @@ class LoginPageState extends State<LoginPage> {
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
                   TextFormField(
+                    cursorColor: globals.theme.primaryColor,
                     controller: emailController,
                     onSaved: (entry) {
                       email = entry;
                     },
                     decoration: InputDecoration(
-                        contentPadding:
-                            EdgeInsets.symmetric(vertical: 8.0, horizontal: 20),
-                        hintStyle: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 20),
-                        hintText: "Email",
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(30.0),
-                            borderSide:
-                                BorderSide(color: Colors.green, width: 2)),
-                        enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(30.0),
-                            borderSide:
-                                BorderSide(color: Colors.green, width: 2))),
+                      contentPadding:
+                          EdgeInsets.symmetric(vertical: 8.0, horizontal: 20),
+                      hintStyle:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                      hintText: "Email",
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(30.0),
+                          borderSide: BorderSide(
+                              color: globals.theme.lightPrimary, width: 2)),
+                      enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(30.0),
+                          borderSide: BorderSide(
+                              color: globals.theme.primaryColor, width: 2)),
+                      focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(30.0),
+                          borderSide: BorderSide(
+                              color: globals.theme.primaryColor, width: 2)),
+                    ),
                   ),
                   Container(
                     height: MediaQuery.of(context).size.height * 0.03,
                   ),
                   TextFormField(
+                    cursorColor: globals.theme.primaryColor,
                     controller: passController,
                     onSaved: (entry) {
                       password = entry;
                     },
                     obscureText: true,
                     decoration: InputDecoration(
-                        contentPadding:
-                            EdgeInsets.symmetric(vertical: 8.0, horizontal: 20),
-                        hintStyle: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 20),
-                        hintText: "Password",
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(30.0),
-                            borderSide:
-                                BorderSide(color: Colors.green, width: 2)),
-                        enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(30.0),
-                            borderSide:
-                                BorderSide(color: Colors.green, width: 2))),
+                      contentPadding:
+                          EdgeInsets.symmetric(vertical: 8.0, horizontal: 20),
+                      hintStyle:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                      hintText: "Password",
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(30.0),
+                          borderSide: BorderSide(
+                              color: globals.theme.primaryColor, width: 2)),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(30.0),
+                        borderSide: BorderSide(
+                            color: globals.theme.primaryColor, width: 2),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(30.0),
+                          borderSide: BorderSide(
+                              color: globals.theme.primaryColor, width: 2)),
+                    ),
                   ),
                   Row(
                     children: <Widget>[
                       Checkbox(
+                        activeColor: globals.theme.primaryColor,
                         value: persistAuth,
                         onChanged: (changed) {
                           persistAuth = changed;
@@ -130,7 +145,7 @@ class LoginPageState extends State<LoginPage> {
                       style:
                           TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                     ),
-                    color: Colors.green,
+                    color: globals.theme.primaryColor,
                     elevation: 3.0,
                     onPressed: () {
                       loading = true;
@@ -146,7 +161,7 @@ class LoginPageState extends State<LoginPage> {
                       style:
                           TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                     ),
-                    //color: Colors.green,
+                    //color: globals.theme.primaryColor,
                     //elevation: 3.0,
                     onPressed: () {
                       Navigator.push(
@@ -213,48 +228,6 @@ class LoginPageState extends State<LoginPage> {
         case "ERROR_USER_NOT_FOUND":
           {
             errorMessage = "Username is incorrect.";
-          }
-          break;
-        case "ERROR_INVALID_EMAIL":
-          {
-            errorMessage = "Please enter a valid email.";
-          }
-          break;
-        case "ERROR_WRONG_PASSWORD":
-          {
-            errorMessage = "Incorrect Password.";
-          }
-          break;
-        default:
-          {
-            errorMessage = "Unknown error.";
-          }
-      }
-
-      setState(() {
-        loading = false;
-      });
-      showErrorMessage();
-    }
-  }
-
-  void attemptSignUp(String email, String pass) async {
-    formKey.currentState.save();
-    try {
-      FirebaseAuth auth = FirebaseAuth.instance;
-      AuthResult result = await auth.createUserWithEmailAndPassword(
-          email: email, password: pass);
-      globals.firebaseUser = result.user;
-      globals.firebaseAuth = auth;
-      Firestore.instance.document(result.user.uid).updateData({"friends": ""});
-      Navigator.of(context).pushReplacement(MaterialPageRoute(
-        builder: (context) => HomePage(),
-      ));
-    } catch (error) {
-      switch (error.code) {
-        case "ERROR_WEAK_PASSWORD":
-          {
-            errorMessage = "Please enter a stronger password.";
           }
           break;
         case "ERROR_INVALID_EMAIL":

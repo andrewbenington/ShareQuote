@@ -58,7 +58,7 @@ class _HomeFeedState extends State<HomeFeed> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.green[200],
+      backgroundColor: globals.theme.backgroundColor,
       body: Stack(children: <Widget>[
         Center(
           child: RefreshIndicator(
@@ -92,11 +92,12 @@ class _HomeFeedState extends State<HomeFeed> {
         )
       ]),
       floatingActionButton: FloatingActionButton(
+        backgroundColor: globals.theme.primaryColor,
         onPressed: () {
           newAward();
         },
-        tooltip: 'Increment',
-        child: Icon(Icons.add),
+        tooltip: 'New Award',
+        child: Icon(Icons.add, color: Colors.white),
       ),
     );
   }

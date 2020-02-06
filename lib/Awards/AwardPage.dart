@@ -39,6 +39,7 @@ class _AwardPageState extends State<AwardPage> {
     // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: globals.theme.primaryColor,
         // Here we take the value from the MyHomePage object that was created by
         // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
@@ -93,17 +94,18 @@ class _AwardPageState extends State<AwardPage> {
           ),
         ],
       ),*/
-      backgroundColor: Colors.green[200],
+      backgroundColor: globals.theme.backgroundColor,
     );
   }
 
   Widget buildSingleAwardCard(BuildContext context, Award award) {
     return Card(
+      color: globals.theme.cardColor,
       child: CustomPaint(
         painter: TabPainter(
             fromLeft: 0.4,
             height: 36,
-            color: award.fromDoc ? Colors.grey[300] : Colors.green[100]),
+            color: award.fromDoc ? Colors.grey[300] : globals.theme.backgroundColor.withOpacity(0.5)),
         child: Column(
           children: <Widget>[
             Padding(
@@ -111,13 +113,13 @@ class _AwardPageState extends State<AwardPage> {
               child: award,
             ),
             Container(
-              color: Colors.grey[300],
+              color: globals.theme.backgroundColor.withOpacity(0.5),
               padding: EdgeInsets.only(left: 8.0, right: 8.0),
               child: TextFormField(
                 autocorrect: false,
                 controller: commentController,
                 decoration: InputDecoration(
-                    hintText: "Comment", border: InputBorder.none),
+                    hintText: "Comment", border: InputBorder.none, hintStyle: TextStyle(color: globals.theme.backTextColor)),
                 minLines: 1,
                 maxLines: 6,
                 textInputAction: TextInputAction.send,
@@ -189,11 +191,12 @@ class CommentState extends State<Comment> {
   @override
   Widget build(BuildContext context) {
     return Card(
+      color: globals.theme.cardColor,
       child: IntrinsicHeight(
         child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Container(
             alignment: Alignment.topCenter,
-            color: Colors.green[100],
+            color: globals.theme.lightPrimary,
             child: Padding(
                 padding: EdgeInsets.all(5),
                 child: Container(
@@ -205,7 +208,7 @@ class CommentState extends State<Comment> {
                           shape: BoxShape.circle,
                         )
                       : BoxDecoration(
-                          color: Colors.white,
+                          color: globals.theme.backgroundColor,
                           shape: BoxShape.circle,
                         ),
                 )),
@@ -219,7 +222,7 @@ class CommentState extends State<Comment> {
                 child: Text(
                   name,
                   overflow: TextOverflow.fade,
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: globals.theme.textColor),
                 ),
               ),
               Padding(
@@ -227,7 +230,7 @@ class CommentState extends State<Comment> {
                 child: Text(
                   widget.message,
                   overflow: TextOverflow.fade,
-                  style: TextStyle(fontSize: 16),
+                  style: TextStyle(fontSize: 16, color: globals.theme.textColor),
                 ),
               )
             ]),

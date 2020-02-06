@@ -37,7 +37,7 @@ class NewProfileForm extends StatefulWidget {
   String name;
   Function remove;
   bool editing = true;
-  Color color = Colors.white;
+  Color color = globals.theme.backgroundColor;
 
   @override
   State<StatefulWidget> createState() {
@@ -60,14 +60,14 @@ class NewProfileFormState extends State<NewProfileForm> {
   @override
   Widget build(BuildContext context) {
     return Card(
-      color: Colors.green[200],
+      color: globals.theme.backgroundColor,
       child: Form(
         child: Column(
           children: <Widget>[
             Spacer(),
             Padding(
               child: Card(
-                color: Colors.white,
+                color: globals.theme.cardColor,
                 child: Container(
                   child: Form(
                     key: formKey,
@@ -86,13 +86,13 @@ class NewProfileFormState extends State<NewProfileForm> {
                                       image: NetworkImage(imageController.text),
                                     ),
                                     border: Border.all(
-                                        width: 5.0, color: Colors.green),
+                                        width: 5.0, color: globals.theme.primaryColor),
                                   )
                                 : BoxDecoration(
                                     shape: BoxShape.circle,
                                     color: Colors.green[300],
                                     border: Border.all(
-                                        width: 5.0, color: Colors.green),
+                                        width: 5.0, color: globals.theme.primaryColor),
                                   ),
                           ),
                           alignment: Alignment.center,
@@ -121,7 +121,7 @@ class NewProfileFormState extends State<NewProfileForm> {
                                 child: RaisedButton(
                                   child: Icon(
                                     Icons.clear,
-                                    color: Colors.white,
+                                    color: globals.theme.backgroundColor,
                                   ),
                                   color: Colors.red,
                                   elevation: 3.0,
@@ -141,9 +141,9 @@ class NewProfileFormState extends State<NewProfileForm> {
                                 child: RaisedButton(
                                   child: Icon(
                                     Icons.check,
-                                    color: Colors.white,
+                                    color: globals.theme.backgroundColor,
                                   ),
-                                  color: Colors.green,
+                                  color: globals.theme.primaryColor,
                                   elevation: 3.0,
                                   onPressed: () {
                                     FormState f = formKey.currentState;
@@ -205,6 +205,7 @@ class NewProfileFormState extends State<NewProfileForm> {
       info.displayName = name;
       result.user.updateProfile(info);
       globals.firebaseUser = result.user;
+      globals.firebaseUser.reload();
       globals.firebaseAuth = auth;
       Firestore.instance.collection("users").document(result.user.uid).setData({
         "image": imageURL,
@@ -251,6 +252,11 @@ class NewProfileFormState extends State<NewProfileForm> {
             errorMessage = "Incorrect Password.";
           }
           break;
+          case "ERROR_EMAIL_ALREADY_IN_USE":
+          {
+            errorMessage = "There is already an account with that email.";
+          }
+          break;
         default:
           {
             errorMessage = "Unknown error.";
@@ -295,10 +301,10 @@ class NewProfileFormState extends State<NewProfileForm> {
                   : Text((counter - controller.text.length).toString()),
               border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(5.0),
-                  borderSide: BorderSide(color: Colors.green, width: 2)),
+                  borderSide: BorderSide(color: globals.theme.primaryColor, width: 2)),
               enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(5.0),
-                  borderSide: BorderSide(color: Colors.green, width: 2))),
+                  borderSide: BorderSide(color: globals.theme.primaryColor, width: 2))),
         ),
         padding: EdgeInsets.only(bottom: 20.0));
   }

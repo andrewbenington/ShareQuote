@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:pearawards/Utils/Utils.dart';
+import 'package:pearawards/Utils/Globals.dart' as globals;
 
 class User {
   User({this.displayName, this.imageUrl, this.uid});
@@ -58,6 +59,7 @@ class UserTabState extends State<UserTab> {
     return Container(
       height: 70,
       child: RaisedButton(
+        
           onPressed: () {
             widget.onPressed();
           },
@@ -66,7 +68,7 @@ class UserTabState extends State<UserTab> {
               AspectRatio(
                 aspectRatio: 1.0,
                 child: Container(
-                  decoration: user != null
+                  decoration: user != null && user.imageUrl != null && user.imageUrl != ""
                       ? BoxDecoration(
                           shape: BoxShape.circle,
                           image: DecorationImage(
@@ -75,7 +77,7 @@ class UserTabState extends State<UserTab> {
                           ),
                         )
                       : BoxDecoration(
-                          shape: BoxShape.circle, color: Colors.green),
+                          shape: BoxShape.circle, color: globals.theme.lightPrimary),
                 ),
               ),
               Expanded(
@@ -85,7 +87,7 @@ class UserTabState extends State<UserTab> {
                     child: RichText(
                       text: TextSpan(
                         text: user == null ? "loading..." : user.displayName,
-                        style: TextStyle(fontSize: 20, color: Colors.black),
+                        style: TextStyle(fontSize: 20, color: globals.theme.textColor),
                       ),
                     ),
                   ),
@@ -96,7 +98,7 @@ class UserTabState extends State<UserTab> {
             padding: EdgeInsets.symmetric(vertical: 5.0),
           ),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          color: Colors.white),
+          color: globals.theme.cardColor),
       padding: EdgeInsets.only(top: 8.0, left: 8.0, right: 8.0),
     );
   }
