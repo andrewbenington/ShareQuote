@@ -105,7 +105,9 @@ class _AwardPageState extends State<AwardPage> {
         painter: TabPainter(
             fromLeft: 0.4,
             height: 36,
-            color: award.fromDoc ? Colors.grey[300] : globals.theme.backgroundColor.withOpacity(0.5)),
+            color: award.fromDoc
+                ? Colors.grey[300]
+                : globals.theme.backgroundColor.withOpacity(0.5)),
         child: Column(
           children: <Widget>[
             Padding(
@@ -119,7 +121,9 @@ class _AwardPageState extends State<AwardPage> {
                 autocorrect: false,
                 controller: commentController,
                 decoration: InputDecoration(
-                    hintText: "Comment", border: InputBorder.none, hintStyle: TextStyle(color: globals.theme.backTextColor)),
+                    hintText: "Comment",
+                    border: InputBorder.none,
+                    hintStyle: TextStyle(color: globals.theme.backTextColor)),
                 minLines: 1,
                 maxLines: 6,
                 textInputAction: TextInputAction.send,
@@ -140,18 +144,16 @@ class _AwardPageState extends State<AwardPage> {
   postComment(String message, DocumentReference award) async {
     award
         .collection("comments")
-        .document(globals.firebaseUser.uid +
+        .document(globals.me.uid +
             DateTime.now().microsecondsSinceEpoch.toString())
         .setData({
       "message": message,
-      "user": globals.firebaseUser.uid,
+      "user": globals.me.uid,
       "timestamp": DateTime.now().microsecondsSinceEpoch
     });
     widget.award.comments++;
     globals.loadedAwards[widget.award.hash].comments = widget.award.comments;
-    
   }
-  
 }
 
 class Comment extends StatefulWidget {
@@ -180,6 +182,7 @@ class CommentState extends State<Comment> {
   loadURL() async {
     DocumentSnapshot snap =
         await Firestore.instance.document('users/${widget.uid}').get();
+    globals.reads++;
     imageURL = snap.data["image"];
     name = snap.data["display"];
     loadedURL = true;
@@ -204,7 +207,11 @@ class CommentState extends State<Comment> {
                   height: 40,
                   decoration: loadedURL
                       ? BoxDecoration(
-                          image: DecorationImage(image: NetworkImage(imageURL,), fit: BoxFit.cover),
+                          image: DecorationImage(
+                              image: NetworkImage(
+                                imageURL,
+                              ),
+                              fit: BoxFit.cover),
                           shape: BoxShape.circle,
                         )
                       : BoxDecoration(
@@ -222,7 +229,10 @@ class CommentState extends State<Comment> {
                 child: Text(
                   name,
                   overflow: TextOverflow.fade,
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: globals.theme.textColor),
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: globals.theme.textColor),
                 ),
               ),
               Padding(
@@ -230,7 +240,8 @@ class CommentState extends State<Comment> {
                 child: Text(
                   widget.message,
                   overflow: TextOverflow.fade,
-                  style: TextStyle(fontSize: 16, color: globals.theme.textColor),
+                  style:
+                      TextStyle(fontSize: 16, color: globals.theme.textColor),
                 ),
               )
             ]),

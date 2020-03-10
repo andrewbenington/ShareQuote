@@ -30,6 +30,7 @@ Future<int> uploadDoc(
   DocumentReference docRef =
       Firestore.instance.collection('users').document(user.uid);
   return docRef.get().then((doc) async {
+    globals.reads++;
     if (!doc.exists) {
       Firestore.instance
           .collection('users')
@@ -48,10 +49,6 @@ Future<int> uploadDoc(
       }, merge: true);
     }
     int time = DateTime.now().microsecondsSinceEpoch;
-    collection.setData(
-        Map.fromIterable(result.awards,
-            key: (a) => a.hash.toString(), value: (a) => time),
-        merge: true);
     return 0;
   });
 }
@@ -87,7 +84,7 @@ setTagReference(String path, String uid, int timestamp, String hash) async {
     "uid": uid,
     "timestamp": timestamp,
     "award": path,
-    "hash" : hash
+    "hash": hash
   }).catchError((error) {
     print(error);
     return;
@@ -102,8 +99,8 @@ addLike(DocumentReference award, Function onFinished, bool remove) async {
       CloudFunctions.instance.getHttpsCallable(functionName: "addRemoveLike");
   await post.call({
     "remove": remove ? "true" : "false",
-    "from": globals.firebaseUser.uid,
-    "name": globals.firebaseUser.displayName,
+    "from": globals.me.uid,
+    "name": globals.me.displayName,
     "award": award.path
   }).catchError((error) {
     print(error);
@@ -139,6 +136,40 @@ massUploadLikes() async {
     }
     if (error) {
       print("error liking post");
+    }
+  });
+}
+
+Future<bool> postFollowRequest(String uid, bool unfollow) async {
+  HttpsCallable post = CloudFunctions.instance
+      .getHttpsCallable(functionName: "sendFollowRequest");
+  var result = await post.call({
+    "remove": unfollow ? "true" : "false",
+    "from": globals.me.uid,
+    "name": globals.me.displayName,
+    "to": uid
+  }).catchError((error) {
+    print(error);
+    return false;
+  });
+
+  print(result.data);
+  return true;
+}
+
+massUploadFollows() async {
+  if (globals.followRequests.length > 1) {
+    return;
+  }
+  Future.delayed(const Duration(seconds: 10), () {
+    if (globals.followRequests.length > 0) {
+      for (MapEntry entry in globals.followRequests.entries) {
+        postFollowRequest(entry.key, !entry.value).then((success) {
+          if (success) {
+            globals.followRequests.remove(entry.key);
+          }
+        });
+      }
     }
   });
 }

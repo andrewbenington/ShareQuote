@@ -125,8 +125,8 @@ class ShadowText extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(children: [
       Positioned(
-          top: 4.0,
-          left: 4.0,
+          top: offset,
+          left: offset,
           child: BackdropFilter(
               filter: ui.ImageFilter.blur(sigmaX: 2.0, sigmaY: 2.0),
               child: Text(text,

@@ -77,8 +77,9 @@ class _SearchPageState extends State<SearchPage> {
 
   Future<void> loadData() async {
     DocumentSnapshot me = await Firestore.instance
-        .document('users/${globals.firebaseUser.uid}')
+        .document('users/${globals.me.uid}')
         .get();
+        globals.reads++;
 
     if (me.data["following"] != null) {
       following = me.data["following"].keys.toList();
@@ -125,7 +126,7 @@ class _SearchPageState extends State<SearchPage> {
             )
           : AwardsStream(
               docRef: Firestore.instance
-                  .document('users_private/${globals.firebaseUser.uid}'),
+                  .document('users_private/${globals.me.uid}'),
               directoryName: 'feed',
               shouldLoad: shouldLoad,
               refreshParent: () {

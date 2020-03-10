@@ -53,13 +53,12 @@ class UserTabState extends State<UserTab> {
 
   @override
   Widget build(BuildContext context) {
-    if(user == null) {
+    if (user == null) {
       loadUser(getUserFromUID(widget.uid));
     }
     return Container(
       height: 70,
       child: RaisedButton(
-        
           onPressed: () {
             widget.onPressed();
           },
@@ -68,7 +67,18 @@ class UserTabState extends State<UserTab> {
               AspectRatio(
                 aspectRatio: 1.0,
                 child: Container(
-                  decoration: user != null && user.imageUrl != null && user.imageUrl != ""
+                  alignment: Alignment.center,
+                  child: user != null &&
+                          (user.imageUrl == null || user.imageUrl == "")
+                      ? Text(user.displayName[0],
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 40))
+                      : Container(),
+                  decoration: user != null &&
+                          user.imageUrl != null &&
+                          user.imageUrl != ""
                       ? BoxDecoration(
                           shape: BoxShape.circle,
                           image: DecorationImage(
@@ -77,7 +87,8 @@ class UserTabState extends State<UserTab> {
                           ),
                         )
                       : BoxDecoration(
-                          shape: BoxShape.circle, color: globals.theme.lightPrimary),
+                          shape: BoxShape.circle,
+                          color: globals.theme.lightPrimary),
                 ),
               ),
               Expanded(
@@ -87,7 +98,8 @@ class UserTabState extends State<UserTab> {
                     child: RichText(
                       text: TextSpan(
                         text: user == null ? "loading..." : user.displayName,
-                        style: TextStyle(fontSize: 20, color: globals.theme.textColor),
+                        style: TextStyle(
+                            fontSize: 20, color: globals.theme.textColor),
                       ),
                     ),
                   ),
@@ -97,9 +109,9 @@ class UserTabState extends State<UserTab> {
             ]),
             padding: EdgeInsets.symmetric(vertical: 5.0),
           ),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           color: globals.theme.cardColor),
-      padding: EdgeInsets.only(top: 8.0, left: 8.0, right: 8.0),
+      padding: EdgeInsets.only(top: 8.0,left: 8.0,right: 8.0),
     );
   }
 }

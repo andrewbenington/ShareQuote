@@ -27,7 +27,7 @@ class NotificationsPageState extends State<NotificationsPage> {
       body: StreamBuilder<QuerySnapshot>(
         stream: Firestore.instance
             .collection(
-                'users_private/${globals.firebaseUser.uid}/notifications')
+                'users_private/${globals.me.uid}/notifications')
             .orderBy("time", descending: true)
             .snapshots(),
         builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
@@ -83,6 +83,7 @@ class NotificationsPageState extends State<NotificationsPage> {
       4: () async {
         DocumentSnapshot document =
             await Firestore.instance.document(data['path']).get();
+            globals.reads++;
         if (!document.exists) {
           Firestore.instance.document(data['path']).delete();
           globals.loadedCollections.remove(document.documentID);
@@ -124,21 +125,22 @@ class NotificationsPageState extends State<NotificationsPage> {
   confirmFriendRequest(String uid) async {
     DocumentReference me = Firestore.instance
         .collection('users')
-        .document(globals.firebaseUser.uid);
+        .document(globals.me.uid);
     DocumentReference them =
         Firestore.instance.collection('users').document(uid);
     if ((await them.get()).data['friends'] == null) {
+      globals.reads++;
       them.setData({
-        'friends': {globals.firebaseUser.uid: true}
+        'friends': {globals.me.uid: true}
       }, merge: true);
       them.updateData({
-        'sentRequests.${globals.firebaseUser.uid}': null,
+        'sentRequests.${globals.me.uid}': null,
         'lastNotification': DateTime.now().microsecondsSinceEpoch
       });
     } else {
       them.updateData({
-        'friends.${globals.firebaseUser.uid}': true,
-        'sentRequests.${globals.firebaseUser.uid}': null,
+        'friends.${globals.me.uid}': true,
+        'sentRequests.${globals.me.uid}': null,
         'lastNotification': DateTime.now().microsecondsSinceEpoch
       });
     }
@@ -152,6 +154,7 @@ class NotificationsPageState extends State<NotificationsPage> {
 
   loadAndVisitAward(DocumentReference ref) async {
     DocumentSnapshot doc = await ref.get();
+    globals.reads++;
     AwardLoader loader = AwardLoader(
       snap: doc,
       refresh: () {},

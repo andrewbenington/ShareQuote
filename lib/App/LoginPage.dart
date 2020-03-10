@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:pearawards/Utils/Utils.dart';
 import 'CreateProfile.dart';
 import 'package:pearawards/Utils/Globals.dart' as globals;
 import 'HomePage.dart';
@@ -216,6 +217,7 @@ class LoginPageState extends State<LoginPage> {
 
       globals.firebaseAuth = auth;
       globals.loadedCollections = Map();
+      globals.me = await getUserFromUID(globals.firebaseUser.uid);
       Navigator.of(context).pushReplacement(MaterialPageRoute(
         builder: (context) => HomePage(),
       ));

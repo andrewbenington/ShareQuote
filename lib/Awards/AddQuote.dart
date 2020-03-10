@@ -91,6 +91,7 @@ class _AddQuoteState extends State<AddQuote> {
               lines[editingIndex].name = user.data["display"];
               reloadLineForm();
               search = "";
+              setState(() {});
             },
           );
         }),
@@ -100,9 +101,7 @@ class _AddQuoteState extends State<AddQuote> {
   }
 
   loadFollowing() async {
-    var me = await Firestore.instance
-        .document('users/${globals.firebaseUser.uid}')
-        .get();
+    var me = await Firestore.instance.document('users/${globals.me.uid}').get();
     following = me.data['following'];
     if (following == null) {
       following = Map();
@@ -145,14 +144,11 @@ class _AddQuoteState extends State<AddQuote> {
                         quotes: quotes,
                         timestamp: DateTime.now().microsecondsSinceEpoch,
                         author: Name(
-                          uid: globals.firebaseUser.uid,
-                          name: globals.firebaseUser.displayName,
+                          uid: globals.me.uid,
+                          name: globals.me.displayName,
                         ));
-                    uploadNewAward(
-                        'users/${globals.firebaseUser.uid}/created_awards',
-                        a,
-                        widget.document,
-                        true);
+                    uploadNewAward('users/${globals.me.uid}/created_awards', a,
+                        widget.document, true);
                     globals.loadedAwards[a.hash.toString()] = a;
                     Navigator.pop(context, a);
                   } else {
@@ -185,7 +181,7 @@ class _AddQuoteState extends State<AddQuote> {
                                 style: TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,
-                                    color: globals.theme.textColor),
+                                    color: Colors.white),
                               ),
                               color: globals.theme.primaryColor,
                               elevation: 3.0,
@@ -479,8 +475,7 @@ class NewLineFormState extends State<NewLineForm> {
                                               label: Text(
                                                 widget.name,
                                                 style: TextStyle(
-                                                    color: globals
-                                                        .theme.backgroundColor,
+                                                    color: Colors.white,
                                                     fontWeight:
                                                         FontWeight.bold),
                                               ),

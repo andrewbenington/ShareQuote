@@ -59,7 +59,7 @@ class _NotificationHandlerState extends State<NotificationHandler> {
   void saveToken() async {
     String token = await _fcm.getToken();
     Firestore.instance
-        .document('users_private/${globals.firebaseUser.uid}')
+        .document('users_private/${globals.me.uid}')
         .setData({"token": token}, merge: true);
     print("InstanceID: $token");
   }

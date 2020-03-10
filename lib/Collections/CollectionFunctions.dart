@@ -13,12 +13,12 @@ createCollection(String name) async {
   await document.setData({
     "lastEdit": DateTime.now().microsecondsSinceEpoch,
     "name": name,
-    "owner": globals.firebaseUser.uid,
-    "followers": {globals.firebaseUser.uid: true}
+    "owner": globals.me.uid,
+    "followers": {globals.me.uid: true}
   });
   globals.loadedCollections[document.documentID] = Collection(
       docRef: document,
-      owner: globals.firebaseUser.uid,
+      owner: globals.me.uid,
       title: name,
       lastEdited: DateTime.now().microsecondsSinceEpoch);
   await addCollectionReference(document, name, null);
@@ -26,20 +26,22 @@ createCollection(String name) async {
 
 Future<void> addCollectionReference(
     DocumentReference document, String title, Function onComplete) async {
-  var docRef = Firestore.instance.document('users/${globals.firebaseUser.uid}');
+  var docRef = Firestore.instance.document('users/${globals.me.uid}');
 
   docRef.get().then((doc) {
+    globals.reads++;
     document.updateData({
-      "followers": {globals.firebaseUser.uid: true}
+      "followers": {globals.me.uid: true}
     });
     var coll = Firestore.instance
-        .collection('users/${globals.firebaseUser.uid}/collections')
+        .collection('users/${globals.me.uid}/collections')
         .document();
     coll.get().then((doc) {
+      globals.reads++;
       if (!doc.exists) {
         Firestore.instance
             .document(
-                'users/${globals.firebaseUser.uid}/collections/${document.documentID}')
+                'users/${globals.me.uid}/collections/${document.documentID}')
             .setData({
           "reference": document,
           "name": title,
@@ -59,11 +61,11 @@ Future<void> addCollectionReference(
 
 Future<void> removeCollectionReference(DocumentReference document) async {
   document.updateData({
-    "followers": {globals.firebaseUser.uid: false}
+    "followers": {globals.me.uid: false}
   });
   Firestore.instance
       .document(
-          'users/${globals.firebaseUser.uid}/collections/${document.documentID}')
+          'users/${globals.me.uid}/collections/${document.documentID}')
       .delete();
   deleteAwardsFromMemory(document.documentID);
   globals.loadedCollections.remove(document.documentID);
@@ -102,6 +104,7 @@ deleteAwardsFromMemory(String docID) async {
 Future<void> loadCollectionFromReference(
     DocumentReference collection, DocumentReference reference) async {
   DocumentSnapshot document = await collection.get();
+  globals.reads++;
   if (!document.exists) {
     reference.delete();
     globals.loadedCollections.remove(document.documentID);
