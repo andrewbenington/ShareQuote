@@ -59,6 +59,7 @@ void sendNotification(String uid, Map<String, dynamic> fields) async {
 
 Future<User> getUserFromUID(String uid) async {
   DocumentSnapshot snap = await Firestore.instance.document('users/$uid').get();
+  globals.reads++;
   if(uid == null) {
     return null;
   }

@@ -11,9 +11,9 @@ void main() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
   String theme = prefs.getString('theme');
   if (theme == null || globals.themes[theme] == null) {
-    globals.changeTheme("Moss");
+    globals.changeTheme("Moss", null);
   } else {
-    globals.changeTheme(theme);
+    globals.changeTheme(theme, null);
   }
   runApp(ShareQuote());
 }
@@ -38,7 +38,7 @@ class ShareQuoteState extends State<StatefulWidget> {
     globals.updateTheme = updateTheme;
     return MaterialApp(
       theme: globals.themeData,
-      title: "FriendAwards",
+      title: "ShareQuote",
       home: SplashPage(),
     );
   }

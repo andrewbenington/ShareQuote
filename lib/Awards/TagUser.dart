@@ -182,8 +182,9 @@ class _TagUserState extends State<TagUser> {
 
   loadFriends() async {
     var me = await Firestore.instance
-        .document('users/${globals.firebaseUser.uid}')
+        .document('users/${globals.me.uid}')
         .get();
+        globals.reads++;
     friends = me.data['friends'];
     sentRequests = me.data['sentRequests'];
     if (friends == null) {

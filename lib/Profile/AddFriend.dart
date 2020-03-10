@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:pearawards/Utils/Globals.dart' as globals;
+import 'package:pearawards/Utils/Upload.dart';
 import 'package:pearawards/Utils/Utils.dart';
 import 'User.dart';
 
@@ -24,7 +25,6 @@ class _AddFriendState extends State<AddFriend> {
   List<User> users = [];
   bool mostRecent = true;
   String errorMessage = '';
-  bool loading = false;
 
   @override
   void initState() {
@@ -35,19 +35,18 @@ class _AddFriendState extends State<AddFriend> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: globals.theme.primaryColor,
-        leading: IconButton(
-          icon: Icon(Icons.close, size: 30),
-          onPressed: () {
-            Navigator.pop(context, false);
-          },
+        appBar: AppBar(
+          backgroundColor: globals.theme.primaryColor,
+          leading: IconButton(
+            icon: Icon(Icons.close, size: 30),
+            onPressed: () {
+              Navigator.pop(context, false);
+            },
+          ),
+          title: Text('Recommendations'),
         ),
-        title: Text('Recommendations'),
-      ),
-      backgroundColor: globals.theme.backgroundColor,
-      body: Stack(children: [
-        StreamBuilder(
+        backgroundColor: globals.theme.backgroundColor,
+        body: StreamBuilder(
             stream: Firestore.instance.collection('users').snapshots(),
             builder: (context, snapshot) {
               var data = snapshot.data;
@@ -64,8 +63,7 @@ class _AddFriendState extends State<AddFriend> {
                                     -1 ||
                                 justFollowed[users[index].documentID] ==
                                     true) &&
-                            users[index].documentID !=
-                                globals.firebaseUser.uid) {
+                            users[index].documentID != globals.me.uid) {
                           return userTab(
                               users[index].documentID,
                               users[index].data['display'],
@@ -75,10 +73,7 @@ class _AddFriendState extends State<AddFriend> {
                         } // This will build a list of Text widgets with the values from the List<String> that is stored in the streambuilder snapshot
                       },
                       itemCount: users.length);
-            }),
-        loading ? Center(child: CircularProgressIndicator()) : Container()
-      ]),
-    );
+            }));
   }
 
   Widget userTab(
@@ -90,20 +85,27 @@ class _AddFriendState extends State<AddFriend> {
       child: Container(
         child: Row(children: <Widget>[
           Container(
+            alignment: Alignment.center,
             width: 50.0,
             height: 50.0,
             margin: EdgeInsets.all(5.0),
-            
-            decoration: imageURL == null || imageURL == "" ? BoxDecoration(
-              shape: BoxShape.circle,
-              color: globals.theme.primaryColor
-            ) : BoxDecoration(
-              shape: BoxShape.circle,
-              image: DecorationImage(
-                fit: BoxFit.cover,
-                image: NetworkImage(imageURL),
-              ),
-            ),
+            child: imageURL == null || imageURL == ""
+                ? Text(name[0],
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 40))
+                : Container(),
+            decoration: imageURL == null || imageURL == ""
+                ? BoxDecoration(
+                    shape: BoxShape.circle, color: globals.theme.primaryColor)
+                : BoxDecoration(
+                    shape: BoxShape.circle,
+                    image: DecorationImage(
+                      fit: BoxFit.cover,
+                      image: NetworkImage(imageURL),
+                    ),
+                  ),
           ),
           Expanded(
             child: FractionallySizedBox(
@@ -126,8 +128,8 @@ class _AddFriendState extends State<AddFriend> {
             child: ButtonTheme(
               child: RaisedButton(
                 child: Icon(
-                  justFollowed[uid] != null ? Icons.check : Icons.add,
-                  color: globals.theme.backgroundColor,
+                  widget.following.indexOf(uid) >= 0 ? Icons.check : Icons.add,
+                  color: Colors.white,
                 ),
                 color: globals.theme.primaryColor,
                 elevation: 3.0,
@@ -149,32 +151,21 @@ class _AddFriendState extends State<AddFriend> {
   }
 
   Future<void> sendFollowRequest(String uid) async {
-    loading = true;
     setState(() {});
-    HttpsCallable post = CloudFunctions.instance
-        .getHttpsCallable(functionName: "sendFollowRequest");
-    var result = await post.call({
-      "remove": widget.following.indexOf(globals.firebaseUser.uid) >= 0
-          ? "true"
-          : "false",
-      "from": globals.firebaseUser.uid,
-      "name": globals.firebaseUser.displayName,
-      "to": uid
-    }).catchError((error) {
-      print(error);
-      loading = false;
-      return;
-    });
+    if (globals.followRequests[uid] != null) {
+      globals.followRequests.remove(uid);
+    } else {
+      globals.followRequests[uid] =
+          widget.following.indexOf(uid) >= 0 ? false : true;
+    }
     if (widget.following.indexOf(uid) >= 0) {
       widget.following.remove(uid);
-      justFollowed.remove(uid);
     } else {
-      widget.following.add(uid);
       justFollowed[uid] = true;
+      widget.following.add(uid);
     }
-    loading = false;
+    massUploadFollows();
     setState(() {});
-    print(result.data);
   }
 }
 

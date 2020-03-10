@@ -221,8 +221,15 @@ Future<List<Award>> convertAwards(String file, String url) async {
         break;
       case CurrentState.names:
         bool namesAdded = false;
+
         while (index < line.length) {
           if (namesAdded && line[index] == '<') {
+            int nameIndex = 0;
+            while (quoteNames.indexOf(defaultName) > -1) {
+              quoteNames[quoteNames.indexOf(defaultName)] =
+                  Name(name: quoteNames[nameIndex].name);
+              nameIndex++;
+            }
             for (int i = 0; i < quoteLines.length; i++) {
               Line l;
               if (quoteNames[i % quoteNames.length] != null) {
@@ -243,6 +250,7 @@ Future<List<Award>> convertAwards(String file, String url) async {
             }
             currentState = CurrentState.award;
             quoteLines = <String>[];
+
             quoteNames = <Name>[];
             break;
           }
@@ -307,6 +315,7 @@ Future<List<Award>> convertAwards(String file, String url) async {
             index++;
           }
         }
+
         break;
 
       case CurrentState.award:

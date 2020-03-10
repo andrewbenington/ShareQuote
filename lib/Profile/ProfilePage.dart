@@ -13,7 +13,9 @@ import 'package:pearawards/Collections/CollectionPage.dart';
 import 'package:pearawards/Utils/DisplayTools.dart';
 import 'package:pearawards/Utils/Globals.dart' as globals;
 import 'package:pearawards/App/LoginPage.dart';
+import 'package:pearawards/Utils/Upload.dart';
 import 'package:pearawards/Utils/Utils.dart';
+import 'dart:ui' as ui;
 
 import 'User.dart';
 
@@ -31,6 +33,7 @@ class ProfilePageState extends State<ProfilePage> {
   List followers = [];
   String imageURL = '';
   String displayName;
+  String username;
   bool loading = false;
   bool verified = false;
 
@@ -74,6 +77,7 @@ class ProfilePageState extends State<ProfilePage> {
   loadCollectionFromReference(
       DocumentReference collection, DocumentReference reference) async {
     DocumentSnapshot document = await collection.get();
+    globals.reads++;
     if (!document.exists) {
       reference.delete();
       globals.loadedCollections.remove(document.documentID);
@@ -92,19 +96,53 @@ class ProfilePageState extends State<ProfilePage> {
   Future<void> loadData() async {
     DocumentSnapshot me =
         await Firestore.instance.document('users/${widget.uid}').get();
+    globals.reads++;
     verified = (await Firestore.instance
             .document('verified_users/${widget.uid}')
             .get())
         .exists;
+    globals.reads++;
     imageURL = me.data['image'];
+    if (imageURL == null) {
+      imageURL = "";
+    }
     displayName = me.data["display"];
+    username = me.data["username"];
     if (me.data["followers"] != null) {
-      followers = me.data["followers"].keys.toList();
+      followers = [];
+      if (widget.uid != globals.firebaseUser.uid) {
+        for (String follower in me.data["followers"].keys) {
+          if (globals.followRequests[follower] != false) {
+            followers.add(follower);
+          }
+        }
+        for (MapEntry entry in globals.followRequests.entries) {
+          if (entry.value == true) {
+            followers.add(entry.key);
+          }
+        }
+      } else {
+        followers = me.data["followers"].keys.toList();
+      }
     } else {
       followers = [];
     }
     if (me.data["following"] != null) {
-      following = me.data["following"].keys.toList();
+      following = [];
+      if (widget.uid == globals.firebaseUser.uid) {
+        for (String follower in me.data["following"].keys) {
+          if (globals.followRequests[follower] != false) {
+            following.add(follower);
+          }
+        }
+        for (MapEntry entry in globals.followRequests.entries) {
+          if (entry.value == true) {
+            following.add(entry.key);
+          }
+        }
+      } else {
+        following = me.data["followers"].keys.toList();
+      }
     } else {
       following = [];
     }
@@ -128,7 +166,7 @@ class ProfilePageState extends State<ProfilePage> {
     });
     if (imageURL == null) {
       loadData();
-    } 
+    }
     tabPages = [
       AwardsStream(
         docRef: Firestore.instance.document('users/${widget.uid}'),
@@ -196,7 +234,7 @@ class ProfilePageState extends State<ProfilePage> {
               ),
             ),
     ];
-    if(widget.uid == globals.firebaseUser.uid) {
+    if (widget.uid == globals.me.uid) {
       globals.profileTabPages = tabPages;
       tabIndex = globals.profileIndex;
     }
@@ -233,7 +271,7 @@ class ProfilePageState extends State<ProfilePage> {
                           rebuildAllChildren(context);
                           setState(() {
                             tabIndex = index;
-                            if(widget.uid == globals.firebaseUser.uid) {
+                            if (widget.uid == globals.me.uid) {
                               globals.profileIndex = index;
                             }
                           });
@@ -282,7 +320,7 @@ class ProfilePageState extends State<ProfilePage> {
                   _buildProfilePhoto(screenSize),
                   Spacer(),
                   _buildFollowButton(),
-                  widget.uid != globals.firebaseUser.uid
+                  widget.uid != globals.me.uid
                       ? Spacer()
                       : _buildFindPeopleButton(),
                   _buildNotificationButton(),
@@ -292,6 +330,10 @@ class ProfilePageState extends State<ProfilePage> {
               margin: EdgeInsets.only(top: 30, bottom: 10, left: 22.0),
             ),
             _buildDisplayName(),
+            Container(
+              height: 5,
+            ),
+            _buildDisplayUsername(),
             Padding(
               padding: EdgeInsets.only(left: 20),
               child: Row(
@@ -366,7 +408,7 @@ class ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildFindPeopleButton() {
-    return globals.firebaseUser.uid != widget.uid
+    return globals.me.uid != widget.uid
         ? Container()
         : Stack(children: [
             RaisedButton(
@@ -385,7 +427,7 @@ class ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildNotificationButton() {
-    return globals.firebaseUser.uid == widget.uid
+    return globals.me.uid == widget.uid
         ? Container()
         : Stack(children: [
             RaisedButton(
@@ -408,14 +450,16 @@ class ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildFollowButton() {
-    return globals.firebaseUser.uid == widget.uid
+    return globals.me.uid == widget.uid
         ? Container()
         : Stack(children: [
             RaisedButton(
                 elevation: 8,
                 color: globals.theme.primaryColor,
                 child: Text(
-                  followers.indexOf(globals.firebaseUser.uid) >= 0
+                  (followers.indexOf(globals.me.uid) >= 0 &&
+                              globals.followRequests[widget.uid] != false) ||
+                          globals.followRequests[widget.uid] == true
                       ? "Following"
                       : "Follow",
                   style: TextStyle(
@@ -433,69 +477,119 @@ class ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> sendFollowRequest() async {
-    loading = true;
     setState(() {});
-    HttpsCallable post = CloudFunctions.instance
-        .getHttpsCallable(functionName: "sendFollowRequest");
-    var result = await post.call({
-      "remove":
-          followers.indexOf(globals.firebaseUser.uid) >= 0 ? "true" : "false",
-      "from": globals.firebaseUser.uid,
-      "name": globals.firebaseUser.displayName,
-      "to": widget.uid
-    }).catchError((error) {
-      print(error);
-      loading = false;
-      return;
-    });
-    if (followers.indexOf(globals.firebaseUser.uid) >= 0) {
-      followers.remove(globals.firebaseUser.uid);
+    if (globals.followRequests[widget.uid] != null) {
+      globals.followRequests.remove(widget.uid);
     } else {
-      followers.add(globals.firebaseUser.uid);
+      globals.followRequests[widget.uid] =
+          followers.indexOf(globals.me.uid) >= 0 ? false : true;
     }
-    loading = false;
+    if (followers.indexOf(globals.me.uid) >= 0) {
+      followers.remove(globals.me.uid);
+    } else {
+      followers.add(globals.me.uid);
+    }
+    massUploadFollows();
     setState(() {});
-    print(result.data);
   }
 
   Widget _buildDisplayName() {
+    return Row(children: [
+      Container(
+          alignment: Alignment.centerLeft,
+          margin: EdgeInsets.only(left: 25.0),
+          child: ShadowText(
+            text: displayName == null ? "" : displayName,
+            offset: 4.0,
+            style: TextStyle(
+                fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white),
+          )),
+      Container(
+        width: 7.0,
+      ),
+      verified ? _buildVerifiedIcon() : Container()
+    ]);
+  }
+
+  Widget _buildDisplayUsername() {
     return Container(
         alignment: Alignment.centerLeft,
         margin: EdgeInsets.only(left: 25.0),
         child: ShadowText(
-          text: displayName == null ? "" : displayName + (verified ? " ✓" : ""),
-          offset: 4.0,
-          style: TextStyle(
-              fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white),
+          text: username == null ? "" : "@" + username,
+          offset: 3.0,
+          style: TextStyle(fontSize: 24, color: Colors.white.withAlpha(220)),
         ));
+  }
+
+  Widget _buildVerifiedIcon() {
+    return Stack(children: [
+      Positioned(
+        top: 4.0,
+        left: 4.0,
+        child: Icon(
+          Icons.check_circle,
+          color: Colors.black45.withOpacity(0.5),
+        ),
+      ),
+      Container(
+        child: Stack(
+          children: [
+            Icon(
+              Icons.fiber_manual_record,
+              color: Colors.white,
+            ),
+            Icon(
+              Icons.check_circle,
+              color: globals.theme.primaryColor,
+            )
+          ],
+        ),
+        height: 30,
+        width: 30,
+      ),
+    ]);
   }
 
   Widget _buildProfilePhoto(Size screenSize) {
     return Align(
-      child: Container(
-        height: screenSize.width * 0.25,
-        width: screenSize.width * 0.25,
-        decoration: imageURL == null || imageURL == ""
-            ? BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.grey[300],
-                border: Border.all(width: 3.0, color: Colors.white),
-                boxShadow: [BoxShadow()])
-            : BoxDecoration(
-                boxShadow: [
-                  BoxShadow(
-                      offset: Offset(4.0, 4.0),
-                      color: Colors.black.withOpacity(0.5))
-                ],
-                shape: BoxShape.circle,
-                image: DecorationImage(
-                  fit: BoxFit.cover,
-                  image: NetworkImage(imageURL),
+      child: Stack(children: [
+        Container(
+          child: displayName != "" &&
+                displayName != null &&
+                (imageURL == null || imageURL == "")
+            ? Padding(child:Text(displayName[0],
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 80)), padding: EdgeInsets.only(top: 12),)
+            : Container(),
+          alignment: Alignment.center,
+          height: 100,
+          width: 100,
+          decoration: imageURL == null || imageURL == ""
+              ? BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: globals.theme.lightPrimary,
+                  border: Border.all(width: 3.0, color: Colors.white),
+                  boxShadow: [BoxShadow()])
+              : BoxDecoration(
+                  boxShadow: [
+                    BoxShadow(
+                        offset: Offset(4.0, 4.0),
+                        color: Colors.black.withOpacity(0.5))
+                  ],
+                  shape: BoxShape.circle,
+                  image: DecorationImage(
+                    fit: BoxFit.cover,
+                    image: NetworkImage(imageURL),
+                  ),
+                  color: Colors.white,
+                  border: Border.all(width: 4.0, color: Colors.white),
                 ),
-                color: Colors.white,
-                border: Border.all(width: 4.0, color: Colors.white),
-              ),
-      ),
+        ),
+        
+      ]),
       alignment: Alignment(-0.8, 0),
     );
   }
@@ -532,8 +626,8 @@ class ProfilePageState extends State<ProfilePage> {
         .getHttpsCallable(functionName: "sendFollowRequest");
     await post.call({
       "remove": remove ? "true" : "false",
-      "from": globals.firebaseUser.uid,
-      "name": globals.firebaseUser.displayName,
+      "from": globals.me.uid,
+      "name": globals.me.displayName,
       "to": uid
     }).catchError((error) {
       print(error);
@@ -561,7 +655,9 @@ class ProfilePageState extends State<ProfilePage> {
                 Expanded(
                   child: ChoiceChip(
                     labelStyle: TextStyle(
-                        color: mostRecent ? globals.theme.primaryColor : Colors.black87),
+                        color: mostRecent
+                            ? globals.theme.primaryColor
+                            : Colors.black87),
                     label: Text('Latest'),
                     onSelected: (bool selected) {
                       setState(() {
@@ -634,13 +730,14 @@ class ProfilePageState extends State<ProfilePage> {
                     gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
                         maxCrossAxisExtent: 500.0, childAspectRatio: 6.0),
                     children: List.generate(users.length, (index) {
-                    
-                      return users[index] != null ? UserTab(
-                        onPressed: () {
-                          toUserPage(users[index]);
-                        },
-                        uid: users[index],
-                      ) : Container();
+                      return users[index] != null
+                          ? UserTab(
+                              onPressed: () {
+                                toUserPage(users[index]);
+                              },
+                              uid: users[index],
+                            )
+                          : Container();
                     }))
                 : Center(
                     child: Column(

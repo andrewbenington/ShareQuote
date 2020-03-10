@@ -73,6 +73,7 @@ class _AwardsStreamState extends State<AwardsStream> {
   }
 
   refresh() async {
+    print(globals.reads);
     auditing = false;
     if (!widget.isLoading.value) {
       await loadAwards();
@@ -95,6 +96,7 @@ class _AwardsStreamState extends State<AwardsStream> {
     widget.isLoading.value = true;
 
     DocumentSnapshot dSnapshot = await widget.docRef.get();
+    globals.reads++;
 
     if (!dSnapshot.exists) {
       Navigator.pop(context, true);
@@ -172,9 +174,6 @@ class _AwardsStreamState extends State<AwardsStream> {
       widget.noAwards.value = true;
       widget.isLoading.value = false;
       widget.shouldLoad.value = false;
-      if (widget.refreshParent != null) {
-        widget.refreshParent();
-      }
       if (mounted) {
         setState(() {});
       }
@@ -186,7 +185,9 @@ class _AwardsStreamState extends State<AwardsStream> {
     for (DocumentSnapshot doc in snapshot.documents) {
       AwardLoader loader = AwardLoader(
           pointer: doc.reference,
-          reference: doc.data["reference"] is String ? Firestore.instance.document(doc.data["reference"]) : doc.data["reference"],
+          reference: doc.data["reference"] is String
+              ? Firestore.instance.document(doc.data["reference"])
+              : doc.data["reference"],
           numLoaded: loaded,
           lastEdit: lastEdits[doc.documentID],
           refresh: widget.refreshParent,
@@ -223,7 +224,7 @@ class _AwardsStreamState extends State<AwardsStream> {
         initEdits();
       }
       if (widget.refreshParent != null) {
-        widget.refreshParent();
+        //widget.refreshParent();
       }
       if (mounted) {
         setState(() {});
@@ -235,18 +236,20 @@ class _AwardsStreamState extends State<AwardsStream> {
 
   initEdits() async {
     Map data = (await widget.docRef.get()).data;
+    globals.reads++;
     int lastEdit = data["lastEdit"];
     if (lastEdit == null) {
       await widget.docRef.setData(
           {"lastEdit": DateTime.now().microsecondsSinceEpoch},
           merge: true);
     }
-    for(AwardLoader a in awards) {
-      if(lastEdits[a.award.hash.toString()] == null) {
-        lastEdits[a.award.hash.toString()] = DateTime.now().microsecondsSinceEpoch;
+    for (AwardLoader a in awards) {
+      if (lastEdits[a.award.hash.toString()] == null) {
+        lastEdits[a.award.hash.toString()] =
+            DateTime.now().microsecondsSinceEpoch;
       }
     }
-        
+
     widget.docRef.setData({"awardEdits": lastEdits}, merge: true);
   }
 
@@ -260,6 +263,7 @@ class _AwardsStreamState extends State<AwardsStream> {
     }
     auditing = true;
     Map collection = (await widget.collectionInfo.docRef.get()).data;
+    globals.reads++;
     String url = collection['googledoc'];
 
     if (url == null) {
@@ -267,6 +271,11 @@ class _AwardsStreamState extends State<AwardsStream> {
       return false;
     }
     Result result = await retrieveAwards(url);
+    if (awards.length == 0 ||
+        result.awards.length == 0 ||
+        (result.awards.length - awards.length).abs() > awards.length * 0.1) {
+      return false;
+    }
     Map<int, Award> inServer = Map();
     awards.forEach((a) {
       if (a.award != null && a.award.fromDoc) {

@@ -48,6 +48,7 @@ class _HomeFeedState extends State<HomeFeed> {
   @override
   void initState() {
     super.initState();
+    shouldLoad.value = true;
   }
 
   Future<void> refresh() async {
@@ -68,12 +69,12 @@ class _HomeFeedState extends State<HomeFeed> {
                     ),
                     AwardsStream(
                       docRef: Firestore.instance.document(
-                          'users_private/${globals.firebaseUser.uid}'),
+                          'users_private/${globals.me.uid}'),
                       directoryName: 'feed',
                       shouldLoad: shouldLoad,
                       refreshParent: () {
                         if (mounted) {
-                          setState(() {});
+                          refresh();
                         }
                       },
                       isLoading: isLoading,

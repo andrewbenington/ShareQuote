@@ -68,7 +68,7 @@ class _CollectionPageState extends State<CollectionPage> {
   loadCollections() async {
     loading = true;
     var coll = Firestore.instance
-        .collection('users/${globals.firebaseUser.uid}/collections');
+        .collection('users/${globals.me.uid}/collections');
     List<Future> waiting = [];
     await coll.getDocuments().then((colls) {
       for (DocumentSnapshot document in colls.documents) {

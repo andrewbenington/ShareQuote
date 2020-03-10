@@ -8,6 +8,7 @@ import 'package:pearawards/Collections/CollectionFunctions.dart';
 import 'package:pearawards/Utils/Converter.dart';
 import 'package:pearawards/Utils/Upload.dart';
 import 'package:pearawards/Utils/Utils.dart';
+import 'package:share/share.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pearawards/Utils/Globals.dart' as globals;
 import 'package:pearawards/Collections/Collection.dart';
@@ -204,7 +205,7 @@ class _CollectionStreamState extends State<CollectionStream> {
 
   Drawer buildDrawer() {
     return Drawer(
-        child: widget.collectionInfo.owner == globals.firebaseUser.uid
+        child: widget.collectionInfo.owner == globals.me.uid
             ? ownerDrawer(() {
                 setState(() {});
               })
@@ -301,6 +302,13 @@ class _CollectionStreamState extends State<CollectionStream> {
         RaisedButton(
           child: Text('Invite a friend'),
           onPressed: inviteFriend,
+        ),
+        RaisedButton(
+          child: Text('Share collection'),
+          onPressed: () {
+            Share.share(
+                'https://sharequote.app/collection?path=${widget.collectionInfo.docRef.path}');
+          },
         ),
         Spacer(),
       ],
@@ -473,6 +481,13 @@ class _CollectionStreamState extends State<CollectionStream> {
           child: Text('Invite a friend'),
           onPressed: inviteFriend,
         ),
+        RaisedButton(
+          child: Text('Share collection'),
+          onPressed: () {
+            Share.share(
+                'https://sharequote.app/collection?path=${widget.collectionInfo.docRef.path}');
+          },
+        ),
         Spacer(),
         FlatButton(
           child: SizedBox(
@@ -517,7 +532,7 @@ class _CollectionStreamState extends State<CollectionStream> {
     if (uid != null) {
       sendNotification(uid, {
         "notification": "4",
-        "name": globals.firebaseUser.displayName,
+        "name": globals.me.displayName,
         "title": widget.collectionInfo.title,
         "path": widget.collectionInfo.docRef.path
       });

@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:package_info/package_info.dart';
 import 'package:pearawards/Utils/Globals.dart' as globals;
+import 'package:pearawards/Utils/Utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'App/HomePage.dart';
@@ -85,8 +86,8 @@ getLandingPage(FirebaseAuth auth, BuildContext context) async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
   globals.firebaseAuth = auth;
   globals.firebaseUser = await auth.currentUser();
-
   if (globals.firebaseUser != null) {
+    globals.me = await getUserFromUID(globals.firebaseUser.uid);
     Navigator.pushReplacement(
         context, MaterialPageRoute(builder: (context) => HomePage()));
     return Container();

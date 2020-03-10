@@ -11,6 +11,7 @@ import 'package:pearawards/Utils/DisplayTools.dart';
 import 'package:pearawards/Utils/Globals.dart' as globals;
 import 'package:pearawards/Utils/Upload.dart';
 import 'package:pearawards/Utils/Utils.dart';
+import 'package:share/share.dart';
 
 import 'AwardPage.dart';
 import 'package:pearawards/Utils/CustomPainters.dart';
@@ -69,6 +70,7 @@ class AwardLoader {
       return;
     }
     await reference.get().then((doc) {
+      globals.reads++;
       if (pointer != null && !awardFromSnapshot(doc)) {
         pointer.delete();
         globals.loadedAwards.remove(pointer.documentID);
@@ -89,7 +91,7 @@ class AwardLoader {
       award.likes = doc.data['likes'];
       award.refresh = refresh;
       if (doc.data["likers"] != null) {
-        award.liked = doc.data["likers"][globals.firebaseUser.uid] == true;
+        award.liked = doc.data["likers"][globals.me.uid] == true;
       }
       award.timestamp = doc.data['timestamp'];
       award.docPath = doc.reference.path;
@@ -239,6 +241,22 @@ class _AwardCardState extends State<AwardCard> {
                           ),
                           padding: EdgeInsets.only(right: 22),
                         ),
+                        Spacer(),
+                        SizedBox(
+                          child: IconButton(
+                            splashColor: Colors.transparent,
+                            highlightColor: Colors.transparent,
+                            icon: Icon(
+                              Icons.file_upload,
+                              color: globals.theme.buttonColor,
+                            ),
+                            onPressed: () {
+                              Share.share(
+                                  'https://sharequote.app/award?path=${widget.award.docPath}');
+                            },
+                          ),
+                          width: 38,
+                        ),
                       ],
                     )
                   ],
@@ -258,27 +276,31 @@ Widget buildAwardCard(BuildContext context, Award award, bool tappable) {
         height: 36,
       ),
       child: FlatButton(
-        splashColor: Colors.transparent,
-        //highlightColor: Colors.transparent,
-        onPressed: tappable
-            ? () {
-                DateTime time =
-                    DateTime.fromMicrosecondsSinceEpoch(award.timestamp);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => AwardPage(
-                        award: award,
-                        title: award.author.name +
-                            (award.showYear
-                                ? ''
-                                : ', ${formatDateTimeAward(time)}')),
-                  ),
-                );
-              }
-            : null,
-        child: award,
-      ),
+          splashColor: Colors.transparent,
+          //highlightColor: Colors.transparent,
+          onPressed: tappable
+              ? () {
+                  DateTime time =
+                      DateTime.fromMicrosecondsSinceEpoch(award.timestamp);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AwardPage(
+                          award: award,
+                          title: award.author.name +
+                              (award.showYear
+                                  ? ''
+                                  : ', ${formatDateTimeAward(time)}')),
+                    ),
+                  );
+                }
+              : null,
+          child: Theme(
+            child: award,
+            data: ThemeData(
+              fontFamily: "Helvetica",
+            ),
+          )),
     ),
     margin: EdgeInsets.only(left: 5.0, right: 5.0, top: 5),
   );
@@ -596,11 +618,10 @@ class Name extends StatelessWidget {
     if (a.people == null) {
       a.people = [];
     }
-    if (a.people.indexOf(name.trim()) >= 0) {
-      a.people[a.people.indexOf(name.trim())]["uid"] = uid;
-    } else {
-      a.people.add({"name": name, "uid": uid});
-    }
+    var element = a.people
+        .firstWhere((element) => element["name"] == name.trim(), orElse: () {
+      return null;
+    });
     uid = await Navigator.push(
         context,
         PageRouteBuilder(
@@ -612,16 +633,23 @@ class Name extends StatelessWidget {
                 child: child);
           },
         ));
+
     if (uid != null) {
+      if (element != null) {
+        element["uid"] = uid;
+      } else {
+        a.people.add({"name": name, "uid": uid});
+      }
       Firestore.instance.document(a.docPath).updateData(awardToMap(a));
       setTagReference(a.docPath, uid, a.timestamp, a.hash.toString());
 
       sendNotification(uid, {
         'notification': '2',
-        'name': globals.firebaseUser.displayName,
-        'uid': globals.firebaseUser.uid,
+        'name': globals.me.displayName,
+        'uid': globals.me.uid,
         'award': a.docPath,
       });
+      a.refresh();
     }
   }
 
@@ -629,19 +657,38 @@ class Name extends StatelessWidget {
   Widget build(BuildContext context) {
     return Align(
       child: FlatButton(
+        padding: EdgeInsets.all(0),
         splashColor: Colors.transparent,
         highlightColor: Colors.transparent,
         child: Container(
-          child: RichText(
-            text: TextSpan(
-              text: '- $name',
-              style: TextStyle(
-                fontSize: 16.0,
-                fontWeight: uid == null ? FontWeight.normal : FontWeight.bold,
-                color: globals.theme.textColor,
-              ),
-            ),
-          ),
+          child: uid == null
+              ? Padding(
+                  child: RichText(
+                    text: TextSpan(
+                      text: '- $name',
+                      style: TextStyle(
+                        fontSize: 16.0,
+                        fontWeight:
+                            uid == null ? FontWeight.normal : FontWeight.bold,
+                        color: uid == null
+                            ? globals.theme.textColor
+                            : globals.theme.backTextColor,
+                      ),
+                    ),
+                  ),
+                  padding: EdgeInsets.only(right: 12.0),
+                )
+              : Chip(
+                  backgroundColor:
+                      globals.theme.backgroundColor.withOpacity(0.5),
+                  label: Text(
+                    '- $name',
+                    style: TextStyle(
+                      color: globals.theme.backTextColor,
+                      fontSize: 16.0,
+                    ),
+                  ),
+                ),
           margin: EdgeInsets.only(bottom: 8.0),
         ),
         onPressed: uid == null

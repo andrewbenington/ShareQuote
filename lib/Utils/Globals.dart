@@ -38,6 +38,7 @@ Map<String, Collection> loadedCollections = Map();
 Map<String, User> loadedUsers = Map();
 Map<String, Award> loadedAwards = Map();
 Map<String, bool> likeRequests = Map();
+Map<String, bool> followRequests = Map();
 List<Widget> pages = [];
 List<Widget> profileTabPages = [];
 int profileIndex = 0;
@@ -45,6 +46,8 @@ MyTheme theme = themes["green"];
 ThemeData themeData =
     ThemeData(primaryColor: Colors.green, primarySwatch: Colors.green);
 Function updateTheme = () {};
+int reads = 0;
+User me = User();
 
 String myName = "";
 
@@ -84,7 +87,7 @@ Map<String, MyTheme> themes = {
       textColor: Colors.black87,
       cardColor: Colors.white,
       darkPrimary: Colors.deepPurple[800],
-      buttonColor: Colors.white,
+      buttonColor: Colors.deepPurple,
       backTextColor: Colors.deepPurple),
   "Grapefruit": MyTheme(
       primaryColor: Colors.deepOrange[700],
@@ -122,6 +125,7 @@ loadUser(String uid) async {
   loadedUsers[uid] = null;
   DocumentSnapshot userSnapshot =
       (await Firestore.instance.document('users/$uid').get());
+      reads++;
   loadedUsers[uid] = User(
       displayName: userSnapshot.data["display"],
       uid: uid,
@@ -129,7 +133,7 @@ loadUser(String uid) async {
   loadedUsers[uid].lastUpdated = DateTime.now().microsecondsSinceEpoch;
 }
 
-changeTheme(String newTheme) {
+changeTheme(String newTheme, BuildContext context) {
   if (themes[newTheme] == null) {
     theme = themes["Moss"];
     themeData =
@@ -149,6 +153,7 @@ changeTheme(String newTheme) {
       900: theme.primaryColor.withOpacity(1),
     };
     themeData = ThemeData(
+      fontFamily: context ==null ? "Helvetica" : DefaultTextStyle.of(context).style.fontFamily,
         primaryColor: theme.primaryColor,
         primarySwatch: MaterialColor(
             theme.primaryColor.red * 65536 +

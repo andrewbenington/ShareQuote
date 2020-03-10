@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:pearawards/Utils/Globals.dart' as globals;
+import 'package:pearawards/Utils/Utils.dart';
 import 'HomePage.dart';
 
 List<NewProfileForm> lines = [];
@@ -54,6 +55,7 @@ class NewProfileFormState extends State<NewProfileForm> {
   TextEditingController passConfirmController = TextEditingController();
   TextEditingController emailController = TextEditingController();
   TextEditingController nameController = TextEditingController();
+  TextEditingController usernameController = TextEditingController();
   TextEditingController imageController = TextEditingController();
 
   final formKey = GlobalKey<FormState>();
@@ -61,130 +63,134 @@ class NewProfileFormState extends State<NewProfileForm> {
   Widget build(BuildContext context) {
     return Card(
       color: globals.theme.backgroundColor,
-      child: Form(
-        child: Column(
-          children: <Widget>[
-            Spacer(),
-            Padding(
-              child: Card(
-                color: globals.theme.cardColor,
-                child: Container(
-                  child: Form(
-                    key: formKey,
-                    child: Column(
-                      children: <Widget>[
-                        Align(
-                          child: Container(
-                            height: MediaQuery.of(context).size.width * 0.4,
-                            width: MediaQuery.of(context).size.width * 0.4,
-                            margin: EdgeInsets.only(top: 20, bottom: 20),
-                            decoration: imageController.text != ""
-                                ? BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    image: DecorationImage(
-                                      fit: BoxFit.fill,
-                                      image: NetworkImage(imageController.text),
+      child: ListView(children: [
+        Form(
+          child: Column(
+            children: <Widget>[
+              Padding(
+                child: Card(
+                  color: globals.theme.cardColor,
+                  child: Container(
+                    child: Form(
+                      key: formKey,
+                      child: Column(
+                        children: <Widget>[
+                          Align(
+                            child: Container(
+                              height: MediaQuery.of(context).size.width * 0.4,
+                              width: MediaQuery.of(context).size.width * 0.4,
+                              margin: EdgeInsets.only(top: 20, bottom: 20),
+                              decoration: imageController.text != ""
+                                  ? BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      image: DecorationImage(
+                                        fit: BoxFit.fill,
+                                        image:
+                                            NetworkImage(imageController.text),
+                                      ),
+                                      border: Border.all(
+                                          width: 5.0,
+                                          color: globals.theme.primaryColor),
+                                    )
+                                  : BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Colors.green[300],
+                                      border: Border.all(
+                                          width: 5.0,
+                                          color: globals.theme.primaryColor),
                                     ),
-                                    border: Border.all(
-                                        width: 5.0, color: globals.theme.primaryColor),
-                                  )
-                                : BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Colors.green[300],
-                                    border: Border.all(
-                                        width: 5.0, color: globals.theme.primaryColor),
-                                  ),
+                            ),
+                            alignment: Alignment.center,
                           ),
-                          alignment: Alignment.center,
-                        ),
-                        signUpForm(nameController, "Display Name", (String a) {
-                          return a != ""
-                              ? null
-                              : "Please enter a display name.";
-                        }, false, 30),
-                        signUpForm(emailController, "Email", (String a) {
-                          return a != "" ? null : "Please enter an email.";
-                        }, false, 30),
-                        signUpForm(passController, "Password", (String a) {
-                          return a != "" ? null : "Please enter a password.";
-                        }, true, 30),
-                        signUpForm(passConfirmController, "Confirm Password",
-                            passwordMatches, true, 30),
-                        signUpForm(imageController, "Image URL", (String a) {
-                          return null;
-                        }, false, null),
-                        Row(
-                          children: <Widget>[
-                            Spacer(),
-                            Container(
-                              child: ButtonTheme(
-                                child: RaisedButton(
-                                  child: Icon(
-                                    Icons.clear,
-                                    color: globals.theme.backgroundColor,
-                                  ),
-                                  color: Colors.red,
-                                  elevation: 3.0,
-                                  onPressed: () {
-                                    Navigator.pop(context);
-                                  },
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(30.0),
-                                  ),
-                                ),
-                              ),
-                              padding: EdgeInsets.only(right: 15.0, left: 5.0),
-                            ),
-                            Spacer(),
-                            Container(
-                              child: ButtonTheme(
-                                child: RaisedButton(
-                                  child: Icon(
-                                    Icons.check,
-                                    color: globals.theme.backgroundColor,
-                                  ),
-                                  color: globals.theme.primaryColor,
-                                  elevation: 3.0,
-                                  onPressed: () {
-                                    FormState f = formKey.currentState;
-                                    if (f.validate()) {
-                                      attemptSignUp(
-                                          nameController.text,
-                                          emailController.text,
-                                          passController.text,
-                                          imageController.text);
-                                    }
-                                  },
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(30.0),
+                          signUpForm(usernameController, "Username", (String a) {
+                            return a != ""
+                                ? null
+                                : "Please enter your username.";
+                          }, false, 30, prefix: "@"),
+                          signUpForm(nameController, "Name", (String a) {
+                            return a != "" ? null : "Please enter your name.";
+                          }, false, 30),
+                          signUpForm(emailController, "Email", (String a) {
+                            return a != "" ? null : "Please enter an email.";
+                          }, false, 30),
+                          signUpForm(passController, "Password", (String a) {
+                            return a != "" ? null : "Please enter a password.";
+                          }, true, 30),
+                          signUpForm(passConfirmController, "Confirm Password",
+                              passwordMatches, true, 30),
+                          signUpForm(imageController, "Image URL", (String a) {
+                            return null;
+                          }, false, null),
+                          Row(
+                            children: <Widget>[
+                              Spacer(),
+                              Container(
+                                child: ButtonTheme(
+                                  child: RaisedButton(
+                                    child: Icon(
+                                      Icons.clear,
+                                      color: globals.theme.backgroundColor,
+                                    ),
+                                    color: Colors.red,
+                                    elevation: 3.0,
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                    },
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(30.0),
+                                    ),
                                   ),
                                 ),
+                                padding:
+                                    EdgeInsets.only(right: 15.0, left: 5.0),
                               ),
-                              padding: EdgeInsets.only(right: 15.0, left: 15.0),
-                            ),
-                            Spacer(),
-                          ],
-                        )
-                      ],
+                              Container(
+                                child: ButtonTheme(
+                                  child: RaisedButton(
+                                    child: Icon(
+                                      Icons.check,
+                                      color: globals.theme.backgroundColor,
+                                    ),
+                                    color: globals.theme.primaryColor,
+                                    elevation: 3.0,
+                                    onPressed: () {
+                                      FormState f = formKey.currentState;
+                                      if (f.validate()) {
+                                        attemptSignUp(
+                                            nameController.text,
+                                            usernameController.text,
+                                            emailController.text,
+                                            passController.text,
+                                            imageController.text);
+                                      }
+                                    },
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(30.0),
+                                    ),
+                                  ),
+                                ),
+                                padding:
+                                    EdgeInsets.only(right: 15.0, left: 15.0),
+                              ),
+                            ],
+                          )
+                        ],
+                      ),
                     ),
+                    padding:
+                        EdgeInsets.only(left: 20.0, right: 20.0, bottom: 20.0),
                   ),
-                  padding:
-                      EdgeInsets.only(left: 20.0, right: 20.0, bottom: 20.0),
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30.0),
+                  ),
                 ),
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30.0),
-                ),
+                padding: EdgeInsets.symmetric(horizontal: 20.0),
               ),
-              padding: EdgeInsets.symmetric(horizontal: 20.0),
-            ),
-            Spacer()
-          ],
+            ],
+          ),
         ),
-      ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(30.0),
-      ),
+      ]),
     );
   }
 
@@ -195,7 +201,7 @@ class NewProfileFormState extends State<NewProfileForm> {
   }
 
   void attemptSignUp(
-      String name, String email, String pass, String imageURL) async {
+      String name, String username, String email, String pass, String imageURL) async {
     formKey.currentState.save();
     try {
       FirebaseAuth auth = FirebaseAuth.instance;
@@ -209,6 +215,7 @@ class NewProfileFormState extends State<NewProfileForm> {
       globals.firebaseAuth = auth;
       Firestore.instance.collection("users").document(result.user.uid).setData({
         "image": imageURL,
+        "username": username,
         "display": name,
         "display_insensitive": name.toUpperCase(),
         "followers": {},
@@ -232,6 +239,7 @@ class NewProfileFormState extends State<NewProfileForm> {
           .collection("users")
           .document(result.user.uid)
           .collection("created_collections");
+      globals.me = await getUserFromUID(globals.firebaseUser.uid);
       Navigator.of(context).pushReplacement(MaterialPageRoute(
         builder: (context) => HomePage(),
       ));
@@ -252,7 +260,7 @@ class NewProfileFormState extends State<NewProfileForm> {
             errorMessage = "Incorrect Password.";
           }
           break;
-          case "ERROR_EMAIL_ALREADY_IN_USE":
+        case "ERROR_EMAIL_ALREADY_IN_USE":
           {
             errorMessage = "There is already an account with that email.";
           }
@@ -281,7 +289,8 @@ class NewProfileFormState extends State<NewProfileForm> {
   }
 
   Widget signUpForm(TextEditingController controller, String label,
-      Function validator, bool hide, int counter) {
+      Function validator, bool hide, int counter,
+      {String prefix = ""}) {
     return Padding(
         child: TextFormField(
           onChanged: (change) {
@@ -292,6 +301,7 @@ class NewProfileFormState extends State<NewProfileForm> {
           validator: validator,
           controller: controller,
           decoration: InputDecoration(
+              prefix: Text(prefix),
               contentPadding:
                   EdgeInsets.symmetric(vertical: 8.0, horizontal: 20),
               labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
@@ -301,10 +311,12 @@ class NewProfileFormState extends State<NewProfileForm> {
                   : Text((counter - controller.text.length).toString()),
               border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(5.0),
-                  borderSide: BorderSide(color: globals.theme.primaryColor, width: 2)),
+                  borderSide:
+                      BorderSide(color: globals.theme.primaryColor, width: 2)),
               enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(5.0),
-                  borderSide: BorderSide(color: globals.theme.primaryColor, width: 2))),
+                  borderSide:
+                      BorderSide(color: globals.theme.primaryColor, width: 2))),
         ),
         padding: EdgeInsets.only(bottom: 20.0));
   }

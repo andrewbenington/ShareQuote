@@ -51,7 +51,7 @@ class _HomePageState extends State<HomePage> {
         searchController: searchController,
       ),
       CollectionPage(),
-      ProfilePage(globals.firebaseUser.uid)
+      ProfilePage(globals.me.uid)
     ];
     List<AppBar> bars = [
       AppBar(
@@ -79,7 +79,8 @@ class _HomePageState extends State<HomePage> {
                 searchRefresh.value = true;
                 setState(() {});
               },
-              style: TextStyle(color: globals.theme.textColor, fontSize: 20),
+              textAlignVertical: TextAlignVertical.center,
+              style: TextStyle(color: Colors.white, fontSize: 20),
               scrollPadding: EdgeInsets.symmetric(vertical: 0.0),
               cursorColor: globals.theme.backgroundColor,
               decoration: InputDecoration(
@@ -277,30 +278,32 @@ class _HomePageState extends State<HomePage> {
 
           Expanded(
             child: Padding(
-                child: Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: 15,
-                    children: <Widget>[Text("Theme: ")] +
-                        List.generate(globals.themes.length, ((index) {
-                          return ChoiceChip(
-                            selectedColor: globals.theme.primaryColor,
-                            labelStyle: TextStyle(
-                                color: globals.theme ==
-                                        globals.themes.values.elementAt(index)
-                                    ? Colors.white
-                                    : Colors.black87),
-                            label: Text(globals.themes.keys.elementAt(index)),
-                            onSelected: (bool selected) {
-                              storeTheme(globals.themes.keys.elementAt(index));
-                              globals.changeTheme(
-                                  globals.themes.keys.elementAt(index));
-                              setState(() {});
-                              rebuildAllChildren(context);
-                            },
-                            selected: globals.theme ==
-                                globals.themes.values.elementAt(index),
-                          );
-                        }))), padding: EdgeInsets.symmetric(vertical: 15),),
+              child: Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 15,
+                  children: <Widget>[Text("Theme: ")] +
+                      List.generate(globals.themes.length, ((index) {
+                        return ChoiceChip(
+                          selectedColor: globals.theme.primaryColor,
+                          labelStyle: TextStyle(
+                              color: globals.theme ==
+                                      globals.themes.values.elementAt(index)
+                                  ? Colors.white
+                                  : Colors.black87),
+                          label: Text(globals.themes.keys.elementAt(index)),
+                          onSelected: (bool selected) {
+                            storeTheme(globals.themes.keys.elementAt(index));
+                            globals.changeTheme(
+                                globals.themes.keys.elementAt(index), context);
+                            setState(() {});
+                            rebuildAllChildren(context);
+                          },
+                          selected: globals.theme ==
+                              globals.themes.values.elementAt(index),
+                        );
+                      }))),
+              padding: EdgeInsets.symmetric(vertical: 15),
+            ),
           ),
           RaisedButton(
             child: Text(
