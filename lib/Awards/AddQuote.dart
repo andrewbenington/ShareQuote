@@ -16,6 +16,7 @@ int editingIndex = 0;
 String search = "";
 String selectedUID = "";
 Function reloadLineForm;
+Function reloadPage;
 
 class AddQuote extends StatefulWidget {
   AddQuote({Key key, this.document, this.title}) : super(key: key);
@@ -111,6 +112,9 @@ class _AddQuoteState extends State<AddQuote> {
 
   @override
   Widget build(BuildContext context) {
+    reloadPage = () {
+      setState(() {});
+    };
     return Scaffold(
         appBar: AppBar(
           actions: <Widget>[
@@ -173,40 +177,77 @@ class _AddQuoteState extends State<AddQuote> {
                   itemCount: lines.length + 1,
                   itemBuilder: (context, index) {
                     return index == lines.length
-                        ? Padding(
-                            key: ValueKey("button"),
-                            child: RaisedButton(
-                              child: Text(
-                                "Add Line",
-                                style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white),
-                              ),
-                              color: globals.theme.primaryColor,
-                              elevation: 3.0,
-                              onPressed: () {
-                                var newForm = NewLineForm(
-                                  index: lines.length,
-                                  scrollController: scrollController,
-                                  searchForName: () {
-                                    loadUsers();
+                        ? Row(children: [
+                            Expanded(
+                              child: Padding(
+                                child: RaisedButton(
+                                  child: Text(
+                                    "Add Quote",
+                                    style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white),
+                                  ),
+                                  color: globals.theme.primaryColor,
+                                  elevation: 3.0,
+                                  onPressed: () {
+                                    var newForm = NewLineForm(
+                                      index: lines.length,
+                                      scrollController: scrollController,
+                                      searchForName: () {
+                                        loadUsers();
+                                        setState(() {});
+                                      },
+                                    );
+                                    newForm.remove = () {
+                                      lines.remove(newForm);
+                                      setState(() {});
+                                    };
+                                    lines.add(newForm);
                                     setState(() {});
                                   },
-                                );
-                                newForm.remove = () {
-                                  lines.remove(newForm);
-                                  setState(() {});
-                                };
-                                lines.add(newForm);
-                                setState(() {});
-                              },
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(30.0),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(30.0),
+                                  ),
+                                ),
+                                padding: EdgeInsets.all(10.0),
                               ),
                             ),
-                            padding: EdgeInsets.all(10.0),
-                          )
+                            Padding(
+                              child: RaisedButton(
+                                child: Text(
+                                  "Add Action",
+                                  style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white),
+                                ),
+                                color: Colors.grey[600],
+                                elevation: 3.0,
+                                onPressed: () {
+                                  var newForm = NewLineForm(
+                                    index: lines.length,
+                                    action: true,
+                                    scrollController: scrollController,
+                                    searchForName: () {
+                                      loadUsers();
+                                      setState(() {});
+                                    },
+                                  );
+                                  newForm.remove = () {
+                                    lines.remove(newForm);
+                                    setState(() {});
+                                  };
+                                  lines.add(newForm);
+                                  setState(() {});
+                                },
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(30.0),
+                                ),
+                              ),
+                              padding: EdgeInsets.all(10.0),
+                            )
+                          ])
                         : LongPressDraggable(
                             key: new ObjectKey(index),
                             data: lines[index],
@@ -260,12 +301,14 @@ class NewLineForm extends StatefulWidget {
       this.key,
       this.remove,
       this.scrollController,
-      this.searchForName});
+      this.searchForName,
+      this.action = false});
   ValueKey key;
   int index;
   String message;
   String name;
   String uid;
+  bool action;
   Function remove;
   bool editing = true;
   final Function searchForName;
@@ -280,13 +323,18 @@ class NewLineForm extends StatefulWidget {
 class NewLineFormState extends State<NewLineForm> {
   @override
   Widget build(BuildContext context) {
+    bool quoteMissing = false;
+    bool nameMissing = false;
     widget.index = lines.indexOf(widget);
     return Stack(children: <Widget>[
       Card(
         color: globals.theme.cardColor,
         child: CustomPaint(
             painter: TabPainter(
-                fromLeft: 0.15, height: 36, color: globals.theme.lightPrimary),
+                fromLeft: 0.15,
+                height: 36,
+                color:
+                    widget.action ? Colors.grey : globals.theme.lightPrimary),
             child: widget.editing
                 ? Column(
                     children: <Widget>[
@@ -301,7 +349,7 @@ class NewLineFormState extends State<NewLineForm> {
                                     style: TextStyle(
                                         fontSize: 17.0,
                                         color: globals.theme.textColor,
-                                        fontWeight: FontWeight.bold),
+                                        fontWeight: FontWeight.w600),
                                   ),
                                 ),
                                 margin: EdgeInsets.only(
@@ -311,7 +359,9 @@ class NewLineFormState extends State<NewLineForm> {
                               Padding(
                                   child: TextFormField(
                                     style: TextStyle(
-                                        color: globals.theme.textColor),
+                                        color: widget.action
+                                            ? Colors.grey
+                                            : globals.theme.textColor),
                                     onTap: () {
                                       editingIndex = widget.index;
                                       widget.scrollController.scrollTo(
@@ -330,23 +380,34 @@ class NewLineFormState extends State<NewLineForm> {
                                         contentPadding: EdgeInsets.symmetric(
                                             vertical: 16.0, horizontal: 20),
                                         hintStyle: TextStyle(
-                                            fontWeight: FontWeight.bold,
+                                            fontWeight: FontWeight.w600,
                                             fontSize: 20,
-                                            color: globals.theme.textColor),
-                                        hintText: "Quote",
+                                            fontStyle: widget.action
+                                                ? FontStyle.italic
+                                                : FontStyle.normal,
+                                            color: Colors.grey[600]),
+                                        hintText: widget.action
+                                            ? "*Action*"
+                                            : "\"Quote\"",
                                         border: OutlineInputBorder(
                                             borderSide: BorderSide(
-                                                color:
-                                                    globals.theme.primaryColor,
+                                                color: widget.action
+                                                    ? Colors.grey
+                                                    : globals
+                                                        .theme.primaryColor,
                                                 width: 2)),
                                         enabledBorder: OutlineInputBorder(
                                             borderSide: BorderSide(
-                                                color:
-                                                    globals.theme.primaryColor,
+                                                color: widget.action
+                                                    ? Colors.grey
+                                                    : globals
+                                                        .theme.primaryColor,
                                                 width: 2)),
                                         focusedBorder: OutlineInputBorder(
                                             borderSide: BorderSide(
-                                                color: globals.theme.textColor,
+                                                color: widget.action
+                                                    ? Colors.grey
+                                                    : globals.theme.textColor,
                                                 width: 2))),
                                   ),
                                   padding: EdgeInsets.only(left: 20.0)),
@@ -355,6 +416,7 @@ class NewLineFormState extends State<NewLineForm> {
                               ),
                               Row(
                                 children: <Widget>[
+                                  widget.action ? Spacer() : Container(),
                                   Container(
                                     child: ButtonTheme(
                                       minWidth: 10.0,
@@ -366,13 +428,22 @@ class NewLineFormState extends State<NewLineForm> {
                                         color: globals.theme.primaryColor,
                                         elevation: 3.0,
                                         onPressed: () {
-                                          if (widget.name == null ||
-                                              widget.message == null) {
-                                            widget.remove();
+                                          if (widget.message == null) {
+                                            quoteMissing = true;
+                                          } else {
+                                            quoteMissing = false;
                                           }
-                                          widget.editing = false;
-                                          search = "";
-                                          setState(() {});
+                                          if (!widget.action &&
+                                              widget.name == null) {
+                                            nameMissing = true;
+                                          } else {
+                                            nameMissing = false;
+                                          }
+                                          if (!quoteMissing && !nameMissing) {
+                                            widget.editing = false;
+                                            search = "";
+                                            setState(() {});
+                                          }
                                         },
                                         shape: RoundedRectangleBorder(
                                           borderRadius:
@@ -406,80 +477,87 @@ class NewLineFormState extends State<NewLineForm> {
                                     padding:
                                         EdgeInsets.only(right: 15.0, left: 5.0),
                                   ),
-                                  Expanded(
-                                      child: widget.uid == null
-                                          ? TextFormField(
-                                              style: TextStyle(
-                                                  color:
-                                                      globals.theme.textColor),
-                                              controller: widget.nameController,
-                                              onTap: () {
-                                                editingIndex = widget.index;
-                                                reloadLineForm = () {
-                                                  setState(() {});
-                                                };
-                                                setState(() {});
-                                              },
-                                              onChanged: (entry) {
-                                                widget.name =
-                                                    widget.nameController.text;
-                                                search =
-                                                    widget.nameController.text;
-                                                widget.searchForName();
-                                                setState(() {});
-                                              },
-                                              onEditingComplete: () {
-                                                search = "";
-                                                widget.searchForName();
-                                                setState(() {});
-                                              },
-                                              decoration: InputDecoration(
-                                                  contentPadding: EdgeInsets.symmetric(
-                                                      vertical: 4.0,
-                                                      horizontal: 20),
-                                                  hintStyle: TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      fontSize: 20,
+                                  widget.action ? Spacer() : Container(),
+                                  widget.action
+                                      ? Container()
+                                      : Expanded(
+                                          child: widget.uid == null
+                                              ? TextFormField(
+                                                  style: TextStyle(
                                                       color: globals
                                                           .theme.textColor),
-                                                  hintText: "Name",
-                                                  border: OutlineInputBorder(
-                                                      borderSide: BorderSide(
-                                                          color: globals.theme
-                                                              .primaryColor,
-                                                          width: 2)),
-                                                  enabledBorder: OutlineInputBorder(
-                                                      borderSide: BorderSide(
-                                                          color: globals.theme
-                                                              .primaryColor,
-                                                          width: 2)),
-                                                  focusedBorder: OutlineInputBorder(
-                                                      borderSide: BorderSide(
-                                                          color: globals.theme.textColor,
-                                                          width: 2))),
-                                            )
-                                          : Chip(
-                                              deleteIcon: Icon(
-                                                Icons.cancel,
-                                                color: globals
-                                                    .theme.backgroundColor,
-                                              ),
-                                              onDeleted: () {
-                                                widget.uid = null;
-                                                widget.nameController.text = "";
-                                                setState(() {});
-                                              },
-                                              backgroundColor:
-                                                  globals.theme.lightPrimary,
-                                              label: Text(
-                                                widget.name,
-                                                style: TextStyle(
-                                                    color: Colors.white,
-                                                    fontWeight:
-                                                        FontWeight.bold),
-                                              ),
-                                            )),
+                                                  controller:
+                                                      widget.nameController,
+                                                  onTap: () {
+                                                    editingIndex = widget.index;
+                                                    reloadLineForm = () {
+                                                      setState(() {});
+                                                    };
+                                                    setState(() {});
+                                                  },
+                                                  onChanged: (entry) {
+                                                    widget.name = widget
+                                                        .nameController.text;
+                                                    search = widget
+                                                        .nameController.text;
+                                                    widget.searchForName();
+                                                    setState(() {});
+                                                  },
+                                                  onEditingComplete: () {
+                                                    search = "";
+                                                    widget.searchForName();
+                                                    setState(() {});
+                                                  },
+                                                  decoration: InputDecoration(
+                                                      contentPadding:
+                                                          EdgeInsets.symmetric(
+                                                              vertical: 4.0,
+                                                              horizontal: 20),
+                                                      hintStyle: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                          fontSize: 20,
+                                                          color:
+                                                              Colors.grey[600]),
+                                                      hintText: "- Name",
+                                                      border: OutlineInputBorder(
+                                                          borderSide: BorderSide(
+                                                              color: globals
+                                                                  .theme
+                                                                  .primaryColor,
+                                                              width: 2)),
+                                                      enabledBorder: OutlineInputBorder(
+                                                          borderSide: BorderSide(
+                                                              color: globals
+                                                                  .theme
+                                                                  .primaryColor,
+                                                              width: 2)),
+                                                      focusedBorder:
+                                                          OutlineInputBorder(
+                                                              borderSide: BorderSide(color: globals.theme.textColor, width: 2))),
+                                                )
+                                              : Chip(
+                                                  deleteIcon: Icon(
+                                                    Icons.cancel,
+                                                    color: globals
+                                                        .theme.backgroundColor,
+                                                  ),
+                                                  onDeleted: () {
+                                                    widget.uid = null;
+                                                    widget.nameController.text =
+                                                        "";
+                                                    setState(() {});
+                                                  },
+                                                  backgroundColor: globals
+                                                      .theme.lightPrimary,
+                                                  label: Text(
+                                                    widget.name,
+                                                    style: TextStyle(
+                                                        color: Colors.white,
+                                                        fontWeight:
+                                                            FontWeight.w600),
+                                                  ),
+                                                )),
                                 ],
                               )
                             ],
@@ -498,8 +576,10 @@ class NewLineFormState extends State<NewLineForm> {
                               text: (widget.index + 1).toString(),
                               style: TextStyle(
                                   fontSize: 17.0,
-                                  color: globals.theme.darkPrimary,
-                                  fontWeight: FontWeight.bold),
+                                  color: widget.action
+                                      ? Colors.grey[600]
+                                      : globals.theme.darkPrimary,
+                                  fontWeight: FontWeight.w600),
                             ),
                           ),
                           margin: EdgeInsets.only(
@@ -516,8 +596,8 @@ class NewLineFormState extends State<NewLineForm> {
                                 text: "edit",
                                 style: TextStyle(
                                     fontSize: 17.0,
-                                    color: globals.theme.backTextColor,
-                                    fontWeight: FontWeight.bold),
+                                    color: widget.action ? Colors.white : globals.theme.backTextColor,
+                                    fontWeight: FontWeight.w600),
                               ),
                             ),
                             margin: EdgeInsets.only(
@@ -532,13 +612,86 @@ class NewLineFormState extends State<NewLineForm> {
                         ),
                       ],
                     ),
-                    Container(
-                      child: Quote(
-                          message: widget.message,
-                          name: Name(
-                            name: widget.name,
-                          )),
-                      padding: EdgeInsets.only(left: 20.0),
+                    widget.action
+                        ? Container(
+                            child: Context(
+                              message: widget.message,
+                            ),
+                            padding: EdgeInsets.only(left: 20.0),
+                          )
+                        : Container(
+                            child: Quote(
+                                message: widget.message,
+                                name: Name(
+                                  name: widget.name,
+                                )),
+                            padding: EdgeInsets.only(left: 20.0),
+                          ),
+                    Row(
+                      children: <Widget>[
+                        Container(
+                          child: ButtonTheme(
+                            minWidth: 10.0,
+                            child: RaisedButton(
+                              child: Icon(
+                                Icons.arrow_upward,
+                                color: Colors.white,
+                              ),
+                              color: globals.theme.primaryColor,
+                              elevation: 3.0,
+                              onPressed: () {
+                                if (0 == widget.index) {
+                                  return;
+                                }
+                                var temp = lines[widget.index - 1];
+                                temp.index += 1;
+                                lines[widget.index - 1] = lines[widget.index];
+                                lines[widget.index] = temp;
+                                setState(() {
+                                  widget.index -= 1;
+                                  reloadPage();
+                                });
+                              },
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30.0),
+                              ),
+                            ),
+                          ),
+                          padding: EdgeInsets.only(
+                              right: 5.0, left: 15.0, bottom: 15.0),
+                        ),
+                        Container(
+                          child: ButtonTheme(
+                            minWidth: 10.0,
+                            child: RaisedButton(
+                              child: Icon(
+                                Icons.arrow_downward,
+                                color: Colors.white,
+                              ),
+                              color: globals.theme.primaryColor,
+                              elevation: 3.0,
+                              onPressed: () {
+                                if (lines.length - 1 <= widget.index) {
+                                  return;
+                                }
+                                var temp = lines[widget.index + 1];
+                                temp.index -= 1;
+                                lines[widget.index + 1] = lines[widget.index];
+                                lines[widget.index] = temp;
+                                setState(() {
+                                  widget.index += 1;
+                                  reloadPage();
+                                });
+                              },
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30.0),
+                              ),
+                            ),
+                          ),
+                          padding: EdgeInsets.only(
+                              right: 15.0, left: 5.0, bottom: 15.0),
+                        )
+                      ],
                     )
                   ])),
         elevation: 2,

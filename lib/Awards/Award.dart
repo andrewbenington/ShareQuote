@@ -110,7 +110,8 @@ class AwardLoader {
     if (filter &&
         (!isLoaded ||
             !award.excludesPattern(
-                'poo|fuck|Jesus|God|dick|shit|fleshlight|tap|vodka|suicide|bernie'))) {
+                '(f+(f| )*(u|[\\u00f9-\\u00fc])+((u|[\\u00f9-\\u00fc])| )*(c|\\u00e7)+((c|\\u00e7)| )*k+(k| )*)|((c|\\u00e7)+((c|\\u00e7)| )*(o|[\\u00f2-\\u00f6])+((o|[\\u00f2-\\u00f6])| )*(c|\\u00e7)+((c|\\u00e7)| )*k+(k| )*)|((b|\\u00fe)+((b|\\u00fe)| )*(i|[\\u00ec-\\u00ef])+((i|[\\u00ec-\\u00ef])| )*t+(t| )*(c|\\u00e7)+((c|\\u00e7)| )*h+(h| )*)|((b|\\u00fe)+((b|\\u00fe)| )*(a|[\\u00e0-\\u00e6])+((a|[\\u00e0-\\u00e6])| )*l+(l| )*l+(l| )*s+(s| )*)|((c|\\u00e7)+((c|\\u00e7)| )*(u|[\\u00f9-\\u00fc])+((u|[\\u00f9-\\u00fc])| )*(c|\\u00e7)+((c|\\u00e7)| )*k+(k| )*)|(j+(j| )*(e|[\\u00e8-\\u00eb])+((e|[\\u00e8-\\u00eb])| )*w+(w| )*)|(d+(d| )*(i|[\\u00ec-\\u00ef])+((i|[\\u00ec-\\u00ef])| )*(c|\\u00e7)+((c|\\u00e7)| )*k+(k| )*)|(p+(p| )*(e|[\\u00e8-\\u00eb])+((e|[\\u00e8-\\u00eb])| )*(n|\\u00f1)+((n|\\u00f1)| )*(i|[\\u00ec-\\u00ef])+((i|[\\u00ec-\\u00ef])| )*s+(s| )*)|((c|\\u00e7)+((c|\\u00e7)| )*(u|[\\u00f9-\\u00fc])+((u|[\\u00f9-\\u00fc])| )*m+(m| )*)|(d+(d| )*(y|\\u00fd)+((y|\\u00fd)| )*k+(k| )*(e|[\\u00e8-\\u00eb])+((e|[\\u00e8-\\u00eb])| )*)|(f+(f| )*(a|[\\u00e0-\\u00e6])+((a|[\\u00e0-\\u00e6])| )*g+(g| )*g+(g| )*(o|[\\u00f2-\\u00f6])+((o|[\\u00f2-\\u00f6])| )*t+(t| )*)|(k+(k| )*(i|[\\u00ec-\\u00ef])+((i|[\\u00ec-\\u00ef])| )*k+(k| )*(e|[\\u00e8-\\u00eb])+((e|[\\u00e8-\\u00eb])| )*)|((n|\\u00f1)+((n|\\u00f1)| )*(i|[\\u00ec-\\u00ef])+((i|[\\u00ec-\\u00ef])| )*g+(g| )*g+(g| )*(e|[\\u00e8-\\u00eb])+((e|[\\u00e8-\\u00eb])| )*r+(r| )*)|(p+(p| )*(i|[\\u00ec-\\u00ef])+((i|[\\u00ec-\\u00ef])| )*s+(s| )*s+(s| )*)|((c|\\u00e7)+((c|\\u00e7)| )*(u|[\\u00f9-\\u00fc])+((u|[\\u00f9-\\u00fc])| )*(n|\\u00f1)+((n|\\u00f1)| )*t+(t| )*)|(t+(t| )*r+(r| )*(a|[\\u00e0-\\u00e6])+((a|[\\u00e0-\\u00e6])| )*(n|\\u00f1)+((n|\\u00f1)| )*(n|\\u00f1)+((n|\\u00f1)| )*(y|\\u00fd)+((y|\\u00fd)| )*)|(g+(g| )*(o|[\\u00f2-\\u00f6])+((o|[\\u00f2-\\u00f6])| )*d+(d| )*)|(s+(s| )*h+(h| )*(i|[\\u00ec-\\u00ef])+((i|[\\u00ec-\\u00ef])| )*t+(t| )*)|(f+(f| )*l+(l| )*(e|[\\u00e8-\\u00eb])+((e|[\\u00e8-\\u00eb])| )*s+(s| )*h+(h| )*l+(l| )*(i|[\\u00ec-\\u00ef])+((i|[\\u00ec-\\u00ef])| )*g+(g| )*h+(h| )*t+(t| )*)|((a|[\\u00e0-\\u00e6])+((a|[\\u00e0-\\u00e6])| )*l+(l| )*(c|\\u00e7)+((c|\\u00e7)| )*(o|[\\u00f2-\\u00f6])+((o|[\\u00f2-\\u00f6])| )*h+(h| )*(o|[\\u00f2-\\u00f6])+((o|[\\u00f2-\\u00f6])| )*l+(l| )*)|(v+(v| )*(o|[\\u00f2-\\u00f6])+((o|[\\u00f2-\\u00f6])| )*d+(d| )*k+(k| )*(a|[\\u00e0-\\u00e6])+((a|[\\u00e0-\\u00e6])| )*)'))) {
+      award.nsfw = true;
       return Container();
     }
     return AwardCard(
@@ -177,7 +178,7 @@ class _AwardCardState extends State<AwardCard> {
                             splashColor: Colors.transparent,
                             highlightColor: Colors.transparent,
                             icon: Icon(
-                              widget.award.liked
+                              widget.award.liked || globals.likeRequests[widget.award.docPath] == true
                                   ? ExtraIcons.heart
                                   : ExtraIcons.heart_empty,
                               color: globals.theme.buttonColor,
@@ -218,7 +219,7 @@ class _AwardCardState extends State<AwardCard> {
                         Container(
                           width: 30,
                           child: Text(
-                            widget.award.likes.toString(),
+                            (widget.award.likes + (!widget.award.liked && globals.likeRequests[widget.award.docPath] == true ? 1 : 0)).toString(),
                             style: TextStyle(
                                 fontSize: 18, color: globals.theme.buttonColor),
                           ),
@@ -341,13 +342,17 @@ class Award extends StatelessWidget {
               Map person;
               try {
                 person = map['people'][quote['name']];
+                quote['name'] =
+                  User(uid: person['uid'], displayName: person['name']);
               } catch (e) {
+                person = map['people'][map['people'].length - 1];
+                quote['name'] =
+                  User(uid: person['uid'], displayName: person['name']);
                 print(map);
                 print(quote);
               }
 
-              quote['name'] =
-                  User(uid: person['uid'], displayName: person['name']);
+              
             }
             return Line.fromMap(quote);
           },
@@ -426,7 +431,7 @@ class Award extends StatelessWidget {
                         style: TextStyle(
                             fontSize: 17.0,
                             color: globals.theme.textColor,
-                            fontWeight: FontWeight.bold),
+                            fontWeight: FontWeight.w600),
                       ),
                     ),
                   ),
@@ -460,7 +465,7 @@ class Award extends StatelessWidget {
                                     color: fromDoc
                                         ? Colors.grey[700]
                                         : globals.theme.backTextColor,
-                                    fontWeight: FontWeight.bold),
+                                    fontWeight: FontWeight.w600),
                               ),
                             ),
                           ),
@@ -669,7 +674,7 @@ class Name extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 16.0,
                         fontWeight:
-                            uid == null ? FontWeight.normal : FontWeight.bold,
+                            uid == null ? FontWeight.normal : FontWeight.w600,
                         color: uid == null
                             ? globals.theme.textColor
                             : globals.theme.backTextColor,

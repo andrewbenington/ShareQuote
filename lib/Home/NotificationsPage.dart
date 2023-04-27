@@ -26,8 +26,7 @@ class NotificationsPageState extends State<NotificationsPage> {
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: Firestore.instance
-            .collection(
-                'users_private/${globals.me.uid}/notifications')
+            .collection('users_private/${globals.me.uid}/notifications')
             .orderBy("time", descending: true)
             .snapshots(),
         builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
@@ -78,12 +77,11 @@ class NotificationsPageState extends State<NotificationsPage> {
     Map<int, Function> functions = {
       3: () {
         visitUserPage(data['uid'], context);
-        
       },
       4: () async {
         DocumentSnapshot document =
             await Firestore.instance.document(data['path']).get();
-            globals.reads++;
+        globals.reads++;
         if (!document.exists) {
           Firestore.instance.document(data['path']).delete();
           globals.loadedCollections.remove(document.documentID);
@@ -102,7 +100,7 @@ class NotificationsPageState extends State<NotificationsPage> {
           messages[data['notification']],
           style: TextStyle(
               fontWeight:
-                  data["read"] == true ? FontWeight.normal : FontWeight.bold),
+                  data["read"] == true ? FontWeight.normal : FontWeight.w600),
         ),
         subtitle: data['time'] is int
             ? Text(
@@ -111,21 +109,24 @@ class NotificationsPageState extends State<NotificationsPage> {
                 style: TextStyle(
                     fontWeight: data["read"] == true
                         ? FontWeight.normal
-                        : FontWeight.bold),
+                        : FontWeight.w600),
               )
             : Text(""),
         onTap: functions[data['notification']] != null
             ? functions[data['notification']]
             : () {
-                loadAndVisitAward(Firestore.instance.document(data['award']));
+                var toVisit = data['award'];
+                if (toVisit is String) {
+                  toVisit = Firestore.instance.document(toVisit);
+                }
+                loadAndVisitAward(toVisit);
               },
         trailing: icons[data['notification']]);
   }
 
   confirmFriendRequest(String uid) async {
-    DocumentReference me = Firestore.instance
-        .collection('users')
-        .document(globals.me.uid);
+    DocumentReference me =
+        Firestore.instance.collection('users').document(globals.me.uid);
     DocumentReference them =
         Firestore.instance.collection('users').document(uid);
     if ((await them.get()).data['friends'] == null) {

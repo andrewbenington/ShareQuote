@@ -63,10 +63,13 @@ Future<User> getUserFromUID(String uid) async {
   if(uid == null) {
     return null;
   }
+  try{
   return User(
       displayName: snap.data["display"],
       imageUrl: snap.data["image"],
-      uid: uid);
+      uid: uid);} catch(e){
+        return null;
+      }
 }
 
 visitUserPage(String uid, BuildContext context) async {

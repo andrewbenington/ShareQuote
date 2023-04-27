@@ -119,7 +119,7 @@ class _CollectionStreamState extends State<CollectionStream> {
                           style: TextStyle(
                               color: globals.theme.backTextColor,
                               fontSize: 40,
-                              fontWeight: FontWeight.bold),
+                              fontWeight: FontWeight.w600),
                         ),
                         Text(
                           'Tap the \'+\' button to add one!',

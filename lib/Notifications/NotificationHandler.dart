@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:pearawards/Awards/Award.dart';
+import 'package:pearawards/Awards/AwardPage.dart';
 import 'package:pearawards/Home/NotificationsPage.dart';
 import 'package:pearawards/Utils/Globals.dart' as globals;
 
@@ -45,8 +47,29 @@ class _NotificationHandlerState extends State<NotificationHandler> {
       Scaffold.of(context).showSnackBar(snackBar);
     }, onLaunch: (Map<String, dynamic> message) async {
       print("onLaunch: $message");
-      Navigator.push(context,
-          MaterialPageRoute(builder: (context) => NotificationsPage()));
+      if (message["award"] != null) {
+        DocumentReference ref;
+        if (message["award"] is DocumentReference) {
+          ref = message["award"];
+        } else {
+          ref = Firestore.instance.document(message["award"]);
+        }
+        AwardLoader aload = AwardLoader(reference: ref);
+        aload.loadAward().then(
+              (value) => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => AwardPage(
+                          award: aload.award,
+                          title: "Award",
+                        )),
+              ),
+            );
+      } else {
+        Navigator.push(context,
+            MaterialPageRoute(builder: (context) => NotificationsPage()));
+      }
+
       // TODO optional
     }, onResume: (Map<String, dynamic> message) async {
       print("onResume: $message");

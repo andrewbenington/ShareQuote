@@ -99,7 +99,7 @@ String formatDateTimeAward(DateTime dt) {
 }
 
 Color colorFromID(String id) {
-  return HSLColor.fromAHSL(1, intFromString(id) % 360.0, 0.8, 0.55).toColor();
+  return HSLColor.fromAHSL(1, id.hashCode % 360.0, 0.8, 0.55).toColor();
 }
 
 String getChatName(String id1, String id2) {

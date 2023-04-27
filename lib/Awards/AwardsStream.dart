@@ -12,6 +12,7 @@ import 'Award.dart';
 import 'package:pearawards/Collections/Collection.dart';
 
 int currentIndex = 0;
+List<AwardLoader> newAwards = [];
 
 class AwardsStream extends StatefulWidget {
   AwardsStream(
@@ -94,7 +95,13 @@ class _AwardsStreamState extends State<AwardsStream> {
     downloaded.value = 0;
     loaded.value = 0;
     widget.isLoading.value = true;
-
+    await Firestore.instance
+        .document('users/${globals.firebaseUser.uid}')
+        .get()
+        .then((me) {
+      globals.followingMe = Set.from(me.data["followers"].keys);
+    });
+    newAwards = [];
     DocumentSnapshot dSnapshot = await widget.docRef.get();
     globals.reads++;
 
@@ -114,7 +121,7 @@ class _AwardsStreamState extends State<AwardsStream> {
       QuerySnapshot docs =
           await widget.docRef.collection(widget.directoryName).getDocuments();
 
-      awards = List.generate(docs.documents.length, (index) {
+      newAwards = List.generate(docs.documents.length, (index) {
         return AwardLoader(
             snap: docs.documents[index],
             refresh: widget.refreshParent,
@@ -124,7 +131,7 @@ class _AwardsStreamState extends State<AwardsStream> {
       if (widget.numAwards != null) {
         widget.numAwards.value = awards.length;
       }
-      awards.sort((a, b) {
+      newAwards.sort((a, b) {
         return b.award.timestamp - a.award.timestamp;
       });
 
@@ -132,6 +139,7 @@ class _AwardsStreamState extends State<AwardsStream> {
       widget.shouldLoad.value = false;
 
       if (mounted) {
+        awards = newAwards;
         setState(() {});
       }
 
@@ -142,7 +150,7 @@ class _AwardsStreamState extends State<AwardsStream> {
       int server = dSnapshot.data["lastEdit"];
       if (server != null && widget.collectionInfo.lastLoaded > server) {
         if (awards == null || awards.length == 0) {
-          awards = List.generate(widget.collectionInfo.awards.length, (a) {
+          newAwards = List.generate(widget.collectionInfo.awards.length, (a) {
             return AwardLoader(
                 award: widget.collectionInfo.awards[a],
                 refresh: widget.refreshParent,
@@ -160,13 +168,14 @@ class _AwardsStreamState extends State<AwardsStream> {
         }
         widget.isLoading.value = false;
         widget.shouldLoad.value = false;
-        setState(() {});
+        setState(() {
+          awards = newAwards;
+        });
         widget.refreshParent();
         return;
       }
     }
     loaded.value = 0;
-    awards = [];
     QuerySnapshot snapshot =
         await widget.docRef.collection(widget.directoryName).getDocuments();
     total = snapshot.documents.length;
@@ -175,7 +184,9 @@ class _AwardsStreamState extends State<AwardsStream> {
       widget.isLoading.value = false;
       widget.shouldLoad.value = false;
       if (mounted) {
-        setState(() {});
+        setState(() {
+          awards = [];
+        });
       }
     }
     if (widget.numAwards != null) {
@@ -202,9 +213,9 @@ class _AwardsStreamState extends State<AwardsStream> {
     }
 
     await loader.loadAward();
-    awards.add(loader);
-    if (awards.length >= total) {
-      awards.sort((a, b) {
+    newAwards.add(loader);
+    if (newAwards.length >= total) {
+      newAwards.sort((a, b) {
         if (a == null || b == null || a.award == null || b.award == null) {
           return 0;
         }
@@ -214,20 +225,22 @@ class _AwardsStreamState extends State<AwardsStream> {
         //storeAwards();
       }
     }
-    if (awards.length >= total) {
+    if (newAwards.length >= total) {
       widget.isLoading.value = false;
       widget.shouldLoad.value = false;
-      if (awards.length > 0) {
+      if (newAwards.length > 0) {
         widget.noAwards.value = false;
       }
-      if (awards.length > 0) {
+      if (newAwards.length > 0) {
         initEdits();
       }
       if (widget.refreshParent != null) {
         //widget.refreshParent();
       }
       if (mounted) {
-        setState(() {});
+        setState(() {
+          awards = newAwards;
+        });
       }
       LocalData.writeAwards(globals.loadedAwards.values.toList());
       print("Downloaded ${downloaded.value} awards from server");
@@ -243,14 +256,14 @@ class _AwardsStreamState extends State<AwardsStream> {
           {"lastEdit": DateTime.now().microsecondsSinceEpoch},
           merge: true);
     }
-    for (AwardLoader a in awards) {
+    for (AwardLoader a in newAwards) {
       if (lastEdits[a.award.hash.toString()] == null) {
         lastEdits[a.award.hash.toString()] =
             DateTime.now().microsecondsSinceEpoch;
       }
     }
 
-    widget.docRef.setData({"awardEdits": lastEdits}, merge: true);
+    //widget.docRef.setData({"awardEdits": lastEdits}, merge: true);
   }
 
   storeAwards() async {
@@ -302,6 +315,7 @@ class _AwardsStreamState extends State<AwardsStream> {
     });
     if (inServer.length > 0 || inDoc.length > 0) {
       updated = true;
+
       widget.collectionInfo.docRef
           .updateData({'lastEdit': DateTime.now().microsecondsSinceEpoch});
     }
@@ -342,7 +356,7 @@ class _AwardsStreamState extends State<AwardsStream> {
                         style: TextStyle(
                             color: globals.theme.backTextColor,
                             fontSize: 40,
-                            fontWeight: FontWeight.bold),
+                            fontWeight: FontWeight.w600),
                       ),
                 Spacer()
               ],
@@ -353,7 +367,11 @@ class _AwardsStreamState extends State<AwardsStream> {
             widget.searchText != null && widget.searchText.value != null
                 ? widget.mostRecent.value
                     ? awards.map((a) {
-                        return a.buildCard(context, true, widget.filter.value);
+                        bool filter = a.award.nsfw == true &&
+                            widget.collectionInfo == null &&
+                            !globals.followingMe.contains(a.award.author.uid);
+                        return a.buildCard(
+                            context, true, widget.filter.value || filter);
                       }).where((test) {
                         if (!(test is AwardCard)) {
                           return false;
@@ -364,8 +382,11 @@ class _AwardsStreamState extends State<AwardsStream> {
                       }).toList()
                     : awards
                         .map((a) {
+                          bool filter = a.award.nsfw == true &&
+                              widget.collectionInfo == null &&
+                              !globals.followingMe.contains(a.award.author.uid);
                           return a.buildCard(
-                              context, true, widget.filter.value);
+                              context, true, widget.filter.value || filter);
                         })
                         .toList()
                         .reversed

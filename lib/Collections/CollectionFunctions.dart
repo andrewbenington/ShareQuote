@@ -135,7 +135,7 @@ pushCollectionStream(
             child: child);
       },
     ),
-  )) {
+  ) == true) {
     onChanged();
   }
 }

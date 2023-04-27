@@ -37,6 +37,7 @@ class ShareQuoteState extends State<StatefulWidget> {
   Widget build(BuildContext context) {
     globals.updateTheme = updateTheme;
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       theme: globals.themeData,
       title: "ShareQuote",
       home: SplashPage(),

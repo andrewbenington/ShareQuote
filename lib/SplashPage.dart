@@ -34,7 +34,7 @@ class SplashPage extends StatelessWidget {
                 "Quote",
                 style: TextStyle(
                     fontSize: 52.0,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: globals.theme.darkPrimary),
               ),
               Spacer(),
@@ -88,11 +88,13 @@ getLandingPage(FirebaseAuth auth, BuildContext context) async {
   globals.firebaseUser = await auth.currentUser();
   if (globals.firebaseUser != null) {
     globals.me = await getUserFromUID(globals.firebaseUser.uid);
-    Navigator.pushReplacement(
-        context, MaterialPageRoute(builder: (context) => HomePage()));
-    return Container();
-  } else {
-    Navigator.pushReplacement(
-        context, MaterialPageRoute(builder: (context) => LoginPage()));
+
+    if (globals.me != null) {
+      Navigator.pushReplacement(
+          context, MaterialPageRoute(builder: (context) => HomePage()));
+      return Container();
+    }
   }
+  Navigator.pushReplacement(
+      context, MaterialPageRoute(builder: (context) => LoginPage()));
 }

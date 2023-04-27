@@ -1,9 +1,18 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:pearawards/Utils/Globals.dart' as globals;
 import 'package:pearawards/Utils/Utils.dart';
+import 'package:http/http.dart' as http;
 import 'HomePage.dart';
+
+class ExistingUserException extends Error {
+  ExistingUserException({this.code});
+  final String code;
+}
 
 List<NewProfileForm> lines = [];
 
@@ -102,7 +111,8 @@ class NewProfileFormState extends State<NewProfileForm> {
                             ),
                             alignment: Alignment.center,
                           ),
-                          signUpForm(usernameController, "Username", (String a) {
+                          signUpForm(usernameController, "Username",
+                              (String a) {
                             return a != ""
                                 ? null
                                 : "Please enter your username.";
@@ -200,10 +210,23 @@ class NewProfileFormState extends State<NewProfileForm> {
         : "Passwords don't match.";
   }
 
-  void attemptSignUp(
-      String name, String username, String email, String pass, String imageURL) async {
+  void attemptSignUp(String name, String username, String email, String pass,
+      String imageURL) async {
     formKey.currentState.save();
     try {
+      Map temp = {'command': 'createUser', 'name': username, 'pass': pass};
+      var encoded = json.encode(temp);
+      try {
+        var response = await http.post('http://98.206.230.186:5757',
+            headers: {
+              HttpHeaders.contentTypeHeader: 'application/json',
+            },
+            body: encoded);
+        if (response.statusCode != 200) {
+          throw ExistingUserException(code: "ERROR_USER_EXISTS");
+        }
+      } catch (e) {}
+
       FirebaseAuth auth = FirebaseAuth.instance;
       AuthResult result = await auth.createUserWithEmailAndPassword(
           email: email, password: pass);
@@ -240,6 +263,7 @@ class NewProfileFormState extends State<NewProfileForm> {
           .document(result.user.uid)
           .collection("created_collections");
       globals.me = await getUserFromUID(globals.firebaseUser.uid);
+
       Navigator.of(context).pushReplacement(MaterialPageRoute(
         builder: (context) => HomePage(),
       ));
@@ -263,6 +287,11 @@ class NewProfileFormState extends State<NewProfileForm> {
         case "ERROR_EMAIL_ALREADY_IN_USE":
           {
             errorMessage = "There is already an account with that email.";
+          }
+          break;
+        case "ERROR_USER_EXISTS":
+          {
+            errorMessage = "There is already an account with that username.";
           }
           break;
         default:
@@ -304,7 +333,7 @@ class NewProfileFormState extends State<NewProfileForm> {
               prefix: Text(prefix),
               contentPadding:
                   EdgeInsets.symmetric(vertical: 8.0, horizontal: 20),
-              labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+              labelStyle: TextStyle(fontWeight: FontWeight.w600, fontSize: 20),
               labelText: label,
               counter: counter == null
                   ? null

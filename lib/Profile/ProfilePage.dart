@@ -141,7 +141,7 @@ class ProfilePageState extends State<ProfilePage> {
           }
         }
       } else {
-        following = me.data["followers"].keys.toList();
+        following = me.data["following"].keys.toList();
       }
     } else {
       following = [];
@@ -553,44 +553,43 @@ class ProfilePageState extends State<ProfilePage> {
 
   Widget _buildProfilePhoto(Size screenSize) {
     return Align(
-      child: Stack(children: [
-        Container(
-          child: displayName != "" &&
+      child: Container(
+        
+        child: displayName != "" &&
                 displayName != null &&
                 (imageURL == null || imageURL == "")
-            ? Padding(child:Text(displayName[0],
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 80)), padding: EdgeInsets.only(top: 12),)
+            ? Text(displayName[0],
+            textAlign: TextAlign.center,
+                style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 80))
             : Container(),
-          alignment: Alignment.center,
-          height: 100,
-          width: 100,
-          decoration: imageURL == null || imageURL == ""
-              ? BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: globals.theme.lightPrimary,
-                  border: Border.all(width: 3.0, color: Colors.white),
-                  boxShadow: [BoxShadow()])
-              : BoxDecoration(
-                  boxShadow: [
-                    BoxShadow(
-                        offset: Offset(4.0, 4.0),
-                        color: Colors.black.withOpacity(0.5))
-                  ],
-                  shape: BoxShape.circle,
-                  image: DecorationImage(
-                    fit: BoxFit.cover,
-                    image: NetworkImage(imageURL),
-                  ),
-                  color: Colors.white,
-                  border: Border.all(width: 4.0, color: Colors.white),
+        alignment: Alignment.center,
+        height: 100,
+        width: 100,
+        padding: EdgeInsets.symmetric(vertical: 15),
+        decoration: imageURL == null || imageURL == ""
+            ? BoxDecoration(
+                shape: BoxShape.circle,
+                color: username != null ? colorFromID(widget.uid) : globals.theme.primaryColor,
+                border: Border.all(width: 3.0, color: Colors.white),
+                boxShadow: [BoxShadow()])
+            : BoxDecoration(
+                boxShadow: [
+                  BoxShadow(
+                      offset: Offset(4.0, 4.0),
+                      color: Colors.black.withOpacity(0.5))
+                ],
+                shape: BoxShape.circle,
+                image: DecorationImage(
+                  fit: BoxFit.cover,
+                  image: NetworkImage(imageURL),
                 ),
-        ),
-        
-      ]),
-      alignment: Alignment(-0.8, 0),
+                color: Colors.white,
+                border: Border.all(width: 4.0, color: Colors.white),
+              ),
+      ),
     );
   }
 

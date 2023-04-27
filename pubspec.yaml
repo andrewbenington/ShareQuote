@@ -12,7 +12,7 @@ description: A new Flutter project.
 # Read more about iOS versioning at
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 
-version: 1.9.0
+version: 1.9.22
 
 environment:
   sdk: ">=2.1.0 <3.0.0"
@@ -39,6 +39,7 @@ dependencies:
   path_provider:
   package_info: ^0.4.0+3
   share: ^0.6.3+5
+  
 
 dev_dependencies:
   flutter_test:
@@ -78,15 +79,6 @@ flutter:
       - family:  ExtraIcons
         fonts:
         - asset: assets/fonts/extraicons.ttf
-      - family:  Helvetica
-        fonts:
-        - asset: assets/fonts/Helvetica.ttc
-      - family:  Tahoma Bold
-        fonts:
-        - asset: assets/fonts/Tahoma Bold.ttf
-      - family:  Tahoma
-        fonts:
-        - asset: assets/fonts/Tahoma.ttf
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages

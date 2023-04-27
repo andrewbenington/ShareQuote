@@ -45,7 +45,7 @@ class LoginPageState extends State<LoginPage> {
                     "Quote",
                     style: TextStyle(
                         fontSize: 52.0,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
                         color: globals.theme.darkPrimary),
                   ),
                   Spacer(),
@@ -80,7 +80,7 @@ class LoginPageState extends State<LoginPage> {
                       contentPadding:
                           EdgeInsets.symmetric(vertical: 8.0, horizontal: 20),
                       hintStyle:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                          TextStyle(fontWeight: FontWeight.w600, fontSize: 20),
                       hintText: "Email",
                       border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(30.0),
@@ -110,7 +110,7 @@ class LoginPageState extends State<LoginPage> {
                       contentPadding:
                           EdgeInsets.symmetric(vertical: 8.0, horizontal: 20),
                       hintStyle:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                          TextStyle(fontWeight: FontWeight.w600, fontSize: 20),
                       hintText: "Password",
                       border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(30.0),
@@ -144,7 +144,7 @@ class LoginPageState extends State<LoginPage> {
                     child: Text(
                       "Log In",
                       style:
-                          TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                          TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white),
                     ),
                     color: globals.theme.primaryColor,
                     elevation: 3.0,
@@ -160,7 +160,7 @@ class LoginPageState extends State<LoginPage> {
                     child: Text(
                       "Sign Up",
                       style:
-                          TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                          TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
                     ),
                     //color: globals.theme.primaryColor,
                     //elevation: 3.0,
@@ -202,14 +202,9 @@ class LoginPageState extends State<LoginPage> {
       });
       FirebaseAuth auth = FirebaseAuth.instance;
       var user = await auth.currentUser();
-      if (auth != null && await auth.currentUser() != null) {
-        globals.firebaseAuth = auth;
-        globals.firebaseUser = await auth.currentUser();
-      } else {
-        AuthResult result = await auth.signInWithEmailAndPassword(
-            email: email, password: password);
-        globals.firebaseUser = result.user;
-      }
+      AuthResult result = await auth.signInWithEmailAndPassword(
+          email: email, password: password);
+      globals.firebaseUser = result.user;
 
       setState(() {
         loading = false;

@@ -1,4 +1,4 @@
-package com.example.pearawards;
+package com.aab.sharequote;
 
 import android.os.Bundle;
 import io.flutter.app.FlutterActivity;

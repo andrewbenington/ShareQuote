@@ -1,11 +1,12 @@
 import 'dart:async';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'dart:io';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:pearawards/Collections/CollectionStream.dart';
 import 'package:pearawards/Home/HomeFeed.dart';
 import 'package:pearawards/App/LoginPage.dart';
-import 'package:pearawards/Awards/Award.dart';
 import 'package:pearawards/Collections/CollectionPage.dart';
 import 'package:pearawards/Home/NotificationsPage.dart';
 import 'package:pearawards/Notifications/NotificationHandler.dart';
@@ -223,59 +224,6 @@ class _HomePageState extends State<HomePage> {
             backgroundColor: globals.theme.primaryColor,
             title: Text("Options"),
           ),
-
-          /*Container(
-            height: MediaQuery.of(context).size.height * 0.7,
-            child: ListView.builder(
-              itemCount: documents.length,
-              itemBuilder: (context, index) {
-                return Dismissible(
-                  key: ObjectKey(documents[index]),
-                  child: RaisedButton(
-                    child: Text(documents[index].name),
-                    onPressed: () {
-                      pageIndex = index;
-                      setState(() {
-                        stream = CollectionStream(
-                          url: documents[index].url,
-                          title: documents[index].name,
-                        );
-                        Navigator.of(context).pop();
-                      });
-                    },
-                  ),
-                  onDismissed: (direction) {
-                    Document temp = documents[index];
-                    documents.removeAt(index);
-                    showDialog(
-                        context: context,
-                        builder: (context) {
-                          return AlertDialog(
-                            title: Text('Document deleted'),
-                            actions: <Widget>[
-                              new FlatButton(
-                                child: new Text('UNDO'),
-                                onPressed: () {
-                                  documents.insert(index, temp);
-                                  Navigator.of(context).pop();
-                                },
-                              ),
-                              new FlatButton(
-                                child: new Text('OK'),
-                                onPressed: () {
-                                  setState(() {});
-                                  Navigator.of(context).pop();
-                                },
-                              )
-                            ],
-                          );
-                        });
-                  },
-                );
-              },
-            ),
-          ),*/
-
           Expanded(
             child: Padding(
               child: Wrap(
@@ -305,6 +253,35 @@ class _HomePageState extends State<HomePage> {
               padding: EdgeInsets.symmetric(vertical: 15),
             ),
           ),
+          globals.firebaseUser.uid == "0f9ZuWVQbuYGxv9DPgzgXqSZhZx2"
+              ? RaisedButton(
+                  child: Text(
+                    "HTTP test",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  color: globals.theme.primaryColor,
+                  onPressed: () async {
+                    Map temp = {
+                      'command': 'getEdits',
+                      'awards': ['award1', 'award2']
+                    };
+                    var encoded = json.encode(temp);
+                    var response = await http.post('http://98.206.230.186:5757',
+                        headers: {
+                          HttpHeaders.contentTypeHeader: 'application/json',
+                        },
+                        body: encoded);
+                    if (response.statusCode != 200) {
+                      setState(() {});
+                    } else {
+                      print(response.body);
+                      setState(() {});
+                    }
+                  })
+              : Container(),
+          Container(
+            height: 100,
+          ),
           RaisedButton(
             child: Text(
               "Log Out",
@@ -321,7 +298,7 @@ class _HomePageState extends State<HomePage> {
           ),
           Container(
             height: 100,
-          )
+          ),
         ],
       ),
     );

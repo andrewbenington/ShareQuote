@@ -1,8 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
+import 'package:pearawards/Assets/ExtraIcons.dart';
 import 'package:pearawards/Utils/CustomPainters.dart';
 import 'package:pearawards/Utils/Globals.dart' as globals;
+import 'package:pearawards/Utils/Upload.dart';
+import 'package:share/share.dart';
 import 'Award.dart';
 
 class AwardPage extends StatefulWidget {
@@ -114,6 +117,100 @@ class _AwardPageState extends State<AwardPage> {
               padding: EdgeInsets.only(left: 15.0, right: 15.0, bottom: 10.0),
               child: award,
             ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: <Widget>[
+                SizedBox(width: 15),
+                SizedBox(
+                  child: IconButton(
+                    splashColor: Colors.transparent,
+                    highlightColor: Colors.transparent,
+                    icon: Icon(
+                      widget.award.liked ||
+                              globals.likeRequests[widget.award.docPath] == true
+                          ? ExtraIcons.heart
+                          : ExtraIcons.heart_empty,
+                      color: globals.theme.buttonColor,
+                    ),
+                    onPressed: () {
+                      if (!widget.award.liked) {
+                        if (globals.likeRequests[widget.award.docPath] ==
+                            false) {
+                          globals.likeRequests.remove(widget.award.docPath);
+                        } else {
+                          globals.likeRequests[widget.award.docPath] = true;
+                          massUploadLikes();
+                        }
+                        widget.award.liked = true;
+                        widget.award.likes += 1;
+                      } else if (widget.award.liked) {
+                        if (globals.likeRequests[widget.award.docPath] ==
+                            true) {
+                          globals.likeRequests.remove(widget.award.docPath);
+                        } else {
+                          globals.likeRequests[widget.award.docPath] = false;
+                          massUploadLikes();
+                        }
+                        widget.award.liked = false;
+                        widget.award.likes -= 1;
+                      }
+                      setState(() {});
+                    },
+                  ),
+                  width: 38,
+                ),
+                Container(
+                  width: 30,
+                  child: Text(
+                    (widget.award.likes +
+                            (!widget.award.liked &&
+                                    globals.likeRequests[
+                                            widget.award.docPath] ==
+                                        true
+                                ? 1
+                                : 0))
+                        .toString(),
+                    style: TextStyle(
+                        fontSize: 18, color: globals.theme.buttonColor),
+                  ),
+                ),
+                Container(
+                  child: Icon(
+                    ExtraIcons.comment_empty,
+                    color: globals.theme.buttonColor,
+                  ),
+                  width: 38,
+                  padding: EdgeInsets.only(bottom: 4),
+                ),
+                Padding(
+                  child: Text(
+                    widget.award.comments == null
+                        ? "0"
+                        : widget.award.comments.toString(),
+                    style: TextStyle(
+                        fontSize: 18, color: globals.theme.buttonColor),
+                  ),
+                  padding: EdgeInsets.only(right: 22),
+                ),
+                Spacer(),
+                SizedBox(
+                  child: IconButton(
+                    splashColor: Colors.transparent,
+                    highlightColor: Colors.transparent,
+                    icon: Icon(
+                      Icons.file_upload,
+                      color: globals.theme.buttonColor,
+                    ),
+                    onPressed: () {
+                      Share.share(
+                          'https://sharequote.app/award?path=${widget.award.docPath}');
+                    },
+                  ),
+                  width: 38,
+                ),
+                SizedBox(width: 15),
+              ],
+            ),
             Container(
               color: globals.theme.backgroundColor.withOpacity(0.5),
               padding: EdgeInsets.only(left: 8.0, right: 8.0),
@@ -144,8 +241,8 @@ class _AwardPageState extends State<AwardPage> {
   postComment(String message, DocumentReference award) async {
     award
         .collection("comments")
-        .document(globals.me.uid +
-            DateTime.now().microsecondsSinceEpoch.toString())
+        .document(
+            globals.me.uid + DateTime.now().microsecondsSinceEpoch.toString())
         .setData({
       "message": message,
       "user": globals.me.uid,
@@ -231,7 +328,7 @@ class CommentState extends State<Comment> {
                   overflow: TextOverflow.fade,
                   style: TextStyle(
                       fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                       color: globals.theme.textColor),
                 ),
               ),

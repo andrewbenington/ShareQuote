@@ -33,7 +33,7 @@ class MyTheme {
 
 FirebaseAuth firebaseAuth;
 FirebaseUser firebaseUser;
-
+Set<String> followingMe = Set();
 Map<String, Collection> loadedCollections = Map();
 Map<String, User> loadedUsers = Map();
 Map<String, Award> loadedAwards = Map();
@@ -116,6 +116,15 @@ Map<String, MyTheme> themes = {
       darkPrimary: Colors.blue[800],
       buttonColor: Colors.blue,
       backTextColor: Colors.blue[600]),
+  "Rat Pink": MyTheme(
+      primaryColor: Colors.pink[700],
+      lightPrimary: Colors.pink[400],
+      backgroundColor: Colors.pink[200],
+      textColor: Colors.black87,
+      cardColor: Colors.white,
+      darkPrimary: Colors.pink[800],
+      buttonColor: Colors.pink,
+      backTextColor: Colors.pink[600]),
 };
 
 loadUser(String uid) async {
@@ -125,7 +134,7 @@ loadUser(String uid) async {
   loadedUsers[uid] = null;
   DocumentSnapshot userSnapshot =
       (await Firestore.instance.document('users/$uid').get());
-      reads++;
+  reads++;
   loadedUsers[uid] = User(
       displayName: userSnapshot.data["display"],
       uid: uid,
@@ -153,7 +162,9 @@ changeTheme(String newTheme, BuildContext context) {
       900: theme.primaryColor.withOpacity(1),
     };
     themeData = ThemeData(
-      fontFamily: context ==null ? "Helvetica" : DefaultTextStyle.of(context).style.fontFamily,
+        fontFamily: context == null
+            ? "Helvetica"
+            : DefaultTextStyle.of(context).style.fontFamily,
         primaryColor: theme.primaryColor,
         primarySwatch: MaterialColor(
             theme.primaryColor.red * 65536 +

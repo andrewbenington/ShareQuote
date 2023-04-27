@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
+import 'package:pearawards/Utils/DisplayTools.dart';
 import 'package:pearawards/Utils/Globals.dart' as globals;
 import 'package:pearawards/Utils/Upload.dart';
 import 'package:pearawards/Utils/Utils.dart';
@@ -93,12 +94,12 @@ class _AddFriendState extends State<AddFriend> {
                 ? Text(name[0],
                     style: TextStyle(
                         color: Colors.white,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
                         fontSize: 40))
                 : Container(),
             decoration: imageURL == null || imageURL == ""
                 ? BoxDecoration(
-                    shape: BoxShape.circle, color: globals.theme.primaryColor)
+                    shape: BoxShape.circle, color: uid != null ? colorFromID(uid) : globals.theme.primaryColor)
                 : BoxDecoration(
                     shape: BoxShape.circle,
                     image: DecorationImage(

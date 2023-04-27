@@ -1,7 +1,5 @@
 # ShareQuote
 
-Sharequote is a Flutter based Quote Sharing application for friend groups and communities. 
+## This project is archived
 
-## Getting Started
-
-All you have to do it just do the thing <3
+Sharequote is a Flutter based quote sharing application for friend groups and communities.

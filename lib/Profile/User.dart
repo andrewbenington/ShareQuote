@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:pearawards/Utils/DisplayTools.dart';
 import 'package:pearawards/Utils/Utils.dart';
 import 'package:pearawards/Utils/Globals.dart' as globals;
 
@@ -73,9 +74,10 @@ class UserTabState extends State<UserTab> {
                       ? Text(user.displayName[0],
                           style: TextStyle(
                               color: Colors.white,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w600,
                               fontSize: 40))
                       : Container(),
+                      padding: EdgeInsets.symmetric(vertical: 8),
                   decoration: user != null &&
                           user.imageUrl != null &&
                           user.imageUrl != ""
@@ -88,7 +90,7 @@ class UserTabState extends State<UserTab> {
                         )
                       : BoxDecoration(
                           shape: BoxShape.circle,
-                          color: globals.theme.lightPrimary),
+                          color: widget.uid != null ? colorFromID(widget.uid) : globals.theme.primaryColor),
                 ),
               ),
               Expanded(
